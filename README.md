@@ -29,7 +29,7 @@ mvn package
 java -jar target/rouble-rate-calculator-1.0.0.jar
 ```
 
-All parameters are named and optional. The defaults are USD, today's date in
+All parameters are named and optional. The defaults are USD, yesterday's date in
 Moscow, and a three-month period:
 
 ```bash

@@ -59,8 +59,8 @@ public final class ExchangeRateApp implements Callable<Integer> {
   private String currency;
 
   @Option(names = {"-e", "--end-date"}, paramLabel = "YYYY-MM-DD",
-      description = "Inclusive end date (default: today in Moscow).")
-  private LocalDate endDate = LocalDate.now(clock);
+      description = "Inclusive end date (default: yesterday in Moscow).")
+  private LocalDate endDate = LocalDate.now(clock).minusDays(1);
 
   @Option(names = {"-p", "--periods"}, split = ",", defaultValue = "3m",
       converter = PeriodConverter.class, paramLabel = "LIST",
