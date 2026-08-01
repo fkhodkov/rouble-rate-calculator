@@ -10,6 +10,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -20,6 +24,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -52,6 +59,7 @@ public final class ExchangeRateApp {
       HttpClient client = HttpClient.newBuilder()
           .connectTimeout(Duration.ofSeconds(15))
           .followRedirects(HttpClient.Redirect.NORMAL)
+          .sslContext(cbrSslContext())
           .build();
       String currencyId = findCurrencyId(client, options.currency());
       LocalDate earliest = options.endDate().minusMonths(12);
@@ -95,6 +103,40 @@ public final class ExchangeRateApp {
       System.err.println("Could not calculate rates: " + e.getMessage());
       System.exit(1);
     }
+  }
+
+  /** Adds CBR's current public CA root to the JDK trust anchors without replacing them. */
+  private static SSLContext cbrSslContext() throws GeneralSecurityException, IOException {
+    TrustManagerFactory defaults = TrustManagerFactory.getInstance(
+        TrustManagerFactory.getDefaultAlgorithm());
+    defaults.init((KeyStore) null);
+    X509TrustManager defaultTrustManager = Stream.of(defaults.getTrustManagers())
+        .filter(X509TrustManager.class::isInstance)
+        .map(X509TrustManager.class::cast)
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException("No default X.509 trust manager"));
+
+    KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+    trustStore.load(null, null);
+    int index = 0;
+    for (X509Certificate certificate : defaultTrustManager.getAcceptedIssuers()) {
+      trustStore.setCertificateEntry("jdk-" + index++, certificate);
+    }
+    try (var input = ExchangeRateApp.class.getResourceAsStream("/certs/harica-tls-rsa-root-2021.pem")) {
+      if (input == null) {
+        throw new IllegalStateException("Bundled CBR CA certificate is missing");
+      }
+      X509Certificate haricaRoot = (X509Certificate) CertificateFactory.getInstance("X.509")
+          .generateCertificate(input);
+      trustStore.setCertificateEntry("harica-tls-rsa-root-2021", haricaRoot);
+    }
+
+    TrustManagerFactory combined = TrustManagerFactory.getInstance(
+        TrustManagerFactory.getDefaultAlgorithm());
+    combined.init(trustStore);
+    SSLContext context = SSLContext.getInstance("TLS");
+    context.init(null, combined.getTrustManagers(), null);
+    return context;
   }
 
   private static String findCurrencyId(HttpClient client, String currency)
