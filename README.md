@@ -62,3 +62,9 @@ The native executable accepts the same named options:
 ```
 
 Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
+
+## Structure
+
+- `ExchangeRateApp` is the command-line entry point and formats results.
+- `ExchangeRateCalculator` contains fetching, caching, and calculation logic.
+- `RateCache` manages SQLite persistence and cached date coverage.

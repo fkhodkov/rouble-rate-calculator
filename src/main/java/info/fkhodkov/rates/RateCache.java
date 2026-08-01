@@ -81,7 +81,7 @@ final class RateCache implements AutoCloseable {
     missing.add(new DateRange(cursor, to));
   }
 
-  List<ExchangeRateApp.Rate> loadRates(String currency, LocalDate from, LocalDate to)
+  List<Rate> loadRates(String currency, LocalDate from, LocalDate to)
       throws SQLException {
     String sql = """
         SELECT rate_date, rubles_per_unit
@@ -93,9 +93,9 @@ final class RateCache implements AutoCloseable {
       statement.setString(2, from.toString());
       statement.setString(3, to.toString());
       try (ResultSet result = statement.executeQuery()) {
-        List<ExchangeRateApp.Rate> rates = new ArrayList<>();
+        List<Rate> rates = new ArrayList<>();
         while (result.next()) {
-          rates.add(new ExchangeRateApp.Rate(
+          rates.add(new Rate(
               LocalDate.parse(result.getString(1)), new BigDecimal(result.getString(2))));
         }
         return List.copyOf(rates);
@@ -105,13 +105,13 @@ final class RateCache implements AutoCloseable {
 
   void storeDownload(
       String currency, DateRange downloaded, LocalDate historicalThrough,
-      List<ExchangeRateApp.Rate> rates) throws SQLException {
+      List<Rate> rates) throws SQLException {
     connection.setAutoCommit(false);
     try {
       try (PreparedStatement statement = connection.prepareStatement("""
           INSERT INTO rates(currency, rate_date, rubles_per_unit) VALUES (?, ?, ?)
           ON CONFLICT(currency, rate_date) DO UPDATE SET rubles_per_unit=excluded.rubles_per_unit""")) {
-        for (ExchangeRateApp.Rate rate : rates) {
+        for (Rate rate : rates) {
           statement.setString(1, currency);
           statement.setString(2, rate.date().toString());
           statement.setString(3, rate.rublesPerUnit().toPlainString());
