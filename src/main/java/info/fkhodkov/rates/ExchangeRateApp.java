@@ -30,7 +30,7 @@ public final class ExchangeRateApp implements Callable<Integer> {
 
   @Option(names = {"-p", "--periods"}, split = ",", defaultValue = "3m",
       converter = PeriodConverter.class, paramLabel = "LIST",
-      description = "Comma-separated periods using d, w, or m (default: ${DEFAULT-VALUE}).")
+      description = "Comma-separated periods using d, w, m, or y (default: ${DEFAULT-VALUE}).")
   private List<Period> periods;
 
   static void main(String[] args) {

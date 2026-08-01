@@ -4,11 +4,7 @@ import java.time.LocalDate;
 
 record Period(int amount, PeriodUnit unit) {
   LocalDate startDate(LocalDate endDate) {
-    return switch (unit) {
-      case DAY -> endDate.minusDays(amount);
-      case WEEK -> endDate.minusWeeks(amount);
-      case MONTH -> endDate.minusMonths(amount);
-    };
+    return unit.getStartToEnd().apply(endDate, (long) amount);
   }
 
   @Override

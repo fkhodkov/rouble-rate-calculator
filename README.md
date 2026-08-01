@@ -2,7 +2,7 @@
 
 A self-contained Java command-line program that downloads official exchange-rate
 history from the Bank of Russia and calculates arithmetic averages for requested
-day, week, or month periods.
+day, week, month or year periods.
 
 The result is expressed as Russian roubles per one unit of the selected currency.
 Only rates actually published by the CBR are averaged; weekends and other dates
@@ -34,14 +34,14 @@ Moscow, and a three-month period:
 
 ```bash
 java -jar target/rouble-rate-calculator-1.0.0.jar --currency EUR --end-date 2026-07-31
-java -jar target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w
-java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR -e 2026-07-31 -p 3m,7d,1w
+java -jar target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w,1y
+java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR -e 2026-07-31 -p 3m,7d,1w,1y
 ```
 
-Both `--name value` and `--name=value` forms are accepted. Period units are
-`d` for days, `w` for weeks, and `m` for months. Short forms are `-c` for
-currency, `-e` for end date, and `-p` for periods. Argument parsing is provided
-by Picocli.
+Both `--name value` and `--name=value` forms are accepted. Period units are `d`
+for days, `w` for weeks, `m` for months and `y` for years. Short forms are `-c`
+for currency, `-e` for end date, and `-p` for periods. Argument parsing is
+provided by Picocli.
 
 Run with `--help` to see the command syntax.
 
@@ -58,7 +58,7 @@ mvn -Pnative clean package
 The native executable accepts the same named options:
 
 ```bash
-./target/rouble-rate-calculator --currency EUR --periods 3m,7d,1w
+./target/rouble-rate-calculator --currency EUR --periods 3m,7d,1w,1y
 ```
 
 Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
