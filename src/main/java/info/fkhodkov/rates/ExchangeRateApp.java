@@ -20,9 +20,13 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
@@ -264,7 +268,7 @@ public final class ExchangeRateApp implements Callable<Integer> {
   record Rate(LocalDate date, BigDecimal rublesPerUnit) {
   }
 
-  record Period(int amount, PeriodUnit unit) {
+  public record Period(int amount, PeriodUnit unit) {
     LocalDate startDate(LocalDate endDate) {
       return switch (unit) {
         case DAY -> endDate.minusDays(amount);
@@ -280,7 +284,17 @@ public final class ExchangeRateApp implements Callable<Integer> {
   }
 
   enum PeriodUnit {
-    DAY('d'), WEEK('w'), MONTH('m');
+    DAY('d'),
+    WEEK('w'),
+    MONTH('m'),
+    ;
+    private static final Map<Character, PeriodUnit> BY_SUFFIX = Arrays.stream(PeriodUnit.values())
+        .collect(Collectors.toUnmodifiableMap(unit -> unit.suffix, Function.identity()));
+
+    static final String PATTERN = Arrays.stream(PeriodUnit.values())
+        .map(unit -> unit.suffix)
+        .map(String::valueOf)
+        .collect(Collectors.joining("", "[", "]"));
 
     private final char suffix;
 
@@ -289,12 +303,10 @@ public final class ExchangeRateApp implements Callable<Integer> {
     }
 
     static PeriodUnit fromSuffix(char suffix) {
-      return switch (suffix) {
-        case 'd' -> DAY;
-        case 'w' -> WEEK;
-        case 'm' -> MONTH;
-        default -> throw new IllegalArgumentException("Unsupported period unit: " + suffix);
-      };
+      if (!BY_SUFFIX.containsKey(suffix)) {
+        throw new IllegalArgumentException("Unsupported period unit: " + suffix);
+      }
+      return BY_SUFFIX.get(suffix);
     }
   }
 
@@ -314,7 +326,7 @@ public final class ExchangeRateApp implements Callable<Integer> {
     @Override
     public Period convert(String value) {
       String period = value.trim().toLowerCase(Locale.ROOT);
-      if (!period.matches("[1-9][0-9]*[dwm]")) {
+      if (!period.matches("[1-9]\\d*" + PeriodUnit.PATTERN)) {
         throw new IllegalArgumentException(
             "period must be a positive number followed by d, w, or m: " + value);
       }
