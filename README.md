@@ -8,6 +8,14 @@ The result is expressed as Russian roubles per one unit of the selected currency
 Only rates actually published by the CBR are averaged; weekends and other dates
 without a newly published rate are not filled in.
 
+Downloaded rates are cached in SQLite at
+`~/.cache/rouble-rate-calculator/rates.db`. Set the `ROUBLE_RATE_DB` environment
+variable to use another database file. The cache records both rates and fetched
+date coverage, so weekends and holidays do not look like missing data. When a
+request has several gaps, the calculator makes one CBR request covering the
+first through last gap. Historical coverage is reused permanently; today and
+future dates remain refreshable.
+
 ## Requirements
 
 - Java 25 or newer

@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
@@ -66,7 +67,7 @@ public final class ExchangeRateApp implements Callable<Integer> {
       description = "Comma-separated periods using d, w, or m (default: ${DEFAULT-VALUE}).")
   private List<Period> periods;
 
-  public static void main(String[] args) {
+  static void main(String[] args) {
     int exitCode = new CommandLine(new ExchangeRateApp()).execute(args);
     if (exitCode != 0) {
       System.exit(exitCode);
@@ -76,17 +77,29 @@ public final class ExchangeRateApp implements Callable<Integer> {
   @Override
   public Integer call() {
     try {
-      HttpClient client = HttpClient.newBuilder()
-          .connectTimeout(Duration.ofSeconds(15))
-          .followRedirects(HttpClient.Redirect.NORMAL)
-          .sslContext(cbrSslContext())
-          .build();
-      String currencyId = findCurrencyId(client, currency);
       LocalDate earliest = periods.stream()
           .map(period -> period.startDate(endDate))
           .min(LocalDate::compareTo)
           .orElseThrow();
-      List<Rate> rates = downloadRates(client, currencyId, earliest, endDate);
+      List<Rate> rates;
+      try (RateCache cache = new RateCache(cachePath())) {
+        LocalDate today = LocalDate.now(clock);
+        List<RateCache.DateRange> missing = cache.missingRanges(currency, earliest, endDate, today);
+        if (!missing.isEmpty()) {
+          RateCache.DateRange download = new RateCache.DateRange(
+              missing.getFirst().from(), missing.getLast().to());
+          HttpClient client = HttpClient.newBuilder()
+              .connectTimeout(Duration.ofSeconds(15))
+              .followRedirects(HttpClient.Redirect.NORMAL)
+              .sslContext(cbrSslContext())
+              .build();
+          String currencyId = findCurrencyId(client, currency);
+          List<Rate> downloaded = downloadRates(
+              client, currencyId, download.from(), download.to());
+          cache.storeDownload(currency, download, today.minusDays(1), downloaded);
+        }
+        rates = cache.loadRates(currency, earliest, endDate);
+      }
       if (rates.isEmpty()) {
         throw new IllegalStateException("The Bank of Russia returned no rates for this period.");
       }
@@ -125,6 +138,15 @@ public final class ExchangeRateApp implements Callable<Integer> {
       System.err.println("Could not calculate rates: " + e.getMessage());
       return 1;
     }
+  }
+
+  private static Path cachePath() {
+    String override = System.getenv("ROUBLE_RATE_DB");
+    if (override != null && !override.isBlank()) {
+      return Path.of(override);
+    }
+    return Path.of(System.getProperty("user.home"), ".cache",
+        "rouble-rate-calculator", "rates.db");
   }
 
   /** Adds CBR's current public CA root to the JDK trust anchors without replacing them. */
