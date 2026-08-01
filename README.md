@@ -1,6 +1,6 @@
 # Rouble rate calculator
 
-A dependency-free Java command-line program that downloads official exchange-rate
+A self-contained Java command-line program that downloads official exchange-rate
 history from the Bank of Russia and calculates arithmetic averages for requested
 day, week, or month periods.
 
@@ -27,10 +27,13 @@ Moscow, and a three-month period:
 ```bash
 java -jar target/rouble-rate-calculator-1.0.0.jar --currency EUR --end-date 2026-07-31
 java -jar target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w
+java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR -e 2026-07-31 -p 3m,7d,1w
 ```
 
 Both `--name value` and `--name=value` forms are accepted. Period units are
-`d` for days, `w` for weeks, and `m` for months.
+`d` for days, `w` for weeks, and `m` for months. Short forms are `-c` for
+currency, `-e` for end date, and `-p` for periods. Argument parsing is provided
+by Picocli.
 
 Run with `--help` to see the command syntax.
 
