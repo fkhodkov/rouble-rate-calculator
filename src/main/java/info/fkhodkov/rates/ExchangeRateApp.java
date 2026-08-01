@@ -20,8 +20,11 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
@@ -42,7 +45,6 @@ public final class ExchangeRateApp {
   private static final String BASE_URL = "https://www.cbr.ru/scripts/";
   private static final DateTimeFormatter CBR_QUERY_DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu");
   private static final DateTimeFormatter CBR_RECORD_DATE = DateTimeFormatter.ofPattern("dd.MM.uuuu");
-  private static final int[] PERIODS = {1, 3, 6, 12};
   private static final Clock clock = Clock.system(ZoneId.of("Europe/Moscow"));
 
   private ExchangeRateApp() {
@@ -62,7 +64,10 @@ public final class ExchangeRateApp {
           .sslContext(cbrSslContext())
           .build();
       String currencyId = findCurrencyId(client, options.currency());
-      LocalDate earliest = options.endDate().minusMonths(12);
+      LocalDate earliest = options.periods().stream()
+          .map(period -> period.startDate(options.endDate()))
+          .min(LocalDate::compareTo)
+          .orElseThrow();
       List<Rate> rates = downloadRates(client, currencyId, earliest, options.endDate());
       if (rates.isEmpty()) {
         throw new IllegalStateException("The Bank of Russia returned no rates for this period.");
@@ -71,23 +76,22 @@ public final class ExchangeRateApp {
       System.out.printf("Official CBR %s/RUB averages through %s%n",
           options.currency(), options.endDate());
       System.out.println("(arithmetic mean of published rates, RUB per 1 currency unit)");
-      for (int months : PERIODS) {
-        LocalDate from = options.endDate().minusMonths(months);
+      for (Period period : options.periods()) {
+        LocalDate from = period.startDate(options.endDate());
         List<Rate> periodRates = rates.stream()
             .filter(rate -> !rate.date().isBefore(from))
             .filter(rate -> !rate.date().isAfter(options.endDate()))
             .toList();
         if (periodRates.isEmpty()) {
-          System.out.printf(Locale.ROOT, "%2d month%s: no data%n",
-              months, months == 1 ? " " : "s");
+          System.out.printf(Locale.ROOT, "%6s: no data%n", period);
           continue;
         }
         BigDecimal average = periodRates.stream()
             .map(Rate::rublesPerUnit)
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .divide(BigDecimal.valueOf(periodRates.size()), 6, RoundingMode.HALF_UP);
-        System.out.printf(Locale.ROOT, "%2d month%s: %12s  (%d published rates, %s to %s)%n",
-            months, months == 1 ? " " : "s", average.toPlainString(),
+        System.out.printf(Locale.ROOT, "%6s: %12s  (%d published rates, %s to %s)%n",
+            period, average.toPlainString(),
             periodRates.size(), periodRates.getFirst().date(),
             periodRates.getLast().date());
       }
@@ -219,36 +223,137 @@ public final class ExchangeRateApp {
 
   private static void printHelp() {
     System.out.println("""
-        Usage: java -jar target/rouble-rate-calculator-1.0.0.jar [CURRENCY] [END_DATE]
-          CURRENCY  ISO code from the CBR daily list (default: USD)
-          END_DATE  YYYY-MM-DD, inclusive (default: today)
+        Usage: java -jar target/rouble-rate-calculator-1.0.0.jar [OPTIONS]
+
+        Options:
+          --currency CODE       ISO code from the CBR daily list (default: USD)
+          --end-date YYYY-MM-DD Inclusive end date (default: today in Moscow)
+          --periods LIST        Comma-separated periods using d, w, or m (default: 3m)
+          -h, --help            Show this help
+
+        Options also accept --name=value syntax.
+
         Examples:
           java -jar target/rouble-rate-calculator-1.0.0.jar
-          java -jar target/rouble-rate-calculator-1.0.0.jar EUR 2026-07-31""");
+          java -jar target/rouble-rate-calculator-1.0.0.jar --currency EUR
+          java -jar target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w
+          java -jar target/rouble-rate-calculator-1.0.0.jar --end-date=2026-07-31 --currency=EUR""");
   }
 
   static Arguments parseArguments(String[] args) {
-    if (args.length > 0 && (args[0].equals("--help") || args[0].equals("-h"))) {
-      return new Arguments("USD", LocalDate.now(clock), true);
+    if (Stream.of(args).anyMatch(arg -> arg.equals("--help") || arg.equals("-h"))) {
+      return new Arguments("USD", LocalDate.now(clock), List.of(new Period(3, PeriodUnit.MONTH)), true);
     }
-    if (args.length > 2) {
-      throw new IllegalArgumentException("Expected at most two arguments.");
+
+    String currency = "USD";
+    LocalDate endDate = LocalDate.now(clock);
+    List<Period> periods = List.of(new Period(3, PeriodUnit.MONTH));
+    Set<String> seen = new LinkedHashSet<>();
+
+    for (int i = 0; i < args.length; i++) {
+      String argument = args[i];
+      if (!argument.startsWith("--")) {
+        throw new IllegalArgumentException("Unexpected positional argument: " + argument);
+      }
+      int equals = argument.indexOf('=');
+      String name = equals >= 0 ? argument.substring(0, equals) : argument;
+      String value;
+      if (equals >= 0) {
+        value = argument.substring(equals + 1);
+      } else {
+        if (i + 1 >= args.length || args[i + 1].startsWith("--")) {
+          throw new IllegalArgumentException("Missing value for " + name);
+        }
+        value = args[++i];
+      }
+      if (!seen.add(name)) {
+        throw new IllegalArgumentException("Option specified more than once: " + name);
+      }
+      switch (name) {
+        case "--currency" -> currency = value.trim().toUpperCase(Locale.ROOT);
+        case "--end-date" -> endDate = parseEndDate(value);
+        case "--periods" -> periods = parsePeriods(value);
+        default -> throw new IllegalArgumentException("Unknown option: " + name);
+      }
     }
-    String currency = args.length >= 1 ? args[0].trim().toUpperCase(Locale.ROOT) : "USD";
+
     if (!currency.matches("[A-Z]{3}")) {
       throw new IllegalArgumentException("Currency must be a three-letter ISO code, such as USD.");
     }
+    return new Arguments(currency, endDate, periods, false);
+  }
+
+  private static LocalDate parseEndDate(String value) {
     try {
-      LocalDate end = args.length == 2 ? LocalDate.parse(args[1]) : LocalDate.now(clock);
-      return new Arguments(currency, end, false);
+      return LocalDate.parse(value);
     } catch (DateTimeParseException _) {
       throw new IllegalArgumentException("End date must use YYYY-MM-DD format.");
     }
   }
 
+  static List<Period> parsePeriods(String value) {
+    if (value.isBlank()) {
+      throw new IllegalArgumentException("Periods list must not be empty.");
+    }
+    List<Period> result = new ArrayList<>();
+    Set<Period> unique = new LinkedHashSet<>();
+    for (String item : value.split(",", -1)) {
+      String period = item.trim().toLowerCase(Locale.ROOT);
+      if (!period.matches("[1-9][\\d]*[dwm]")) {
+        throw new IllegalArgumentException(
+            "Invalid period '" + item + "'. Use a positive number followed by d, w, or m.");
+      }
+      try {
+        int amount = Integer.parseInt(period.substring(0, period.length() - 1));
+        PeriodUnit unit = PeriodUnit.fromSuffix(period.charAt(period.length() - 1));
+        Period parsed = new Period(amount, unit);
+        if (unique.add(parsed)) {
+          result.add(parsed);
+        }
+      } catch (NumberFormatException _) {
+        throw new IllegalArgumentException("Period number is too large: " + item);
+      }
+    }
+    return List.copyOf(result);
+  }
+
   record Rate(LocalDate date, BigDecimal rublesPerUnit) {
   }
 
-  private record Arguments(String currency, LocalDate endDate, boolean help) {
+  record Period(int amount, PeriodUnit unit) {
+    LocalDate startDate(LocalDate endDate) {
+      return switch (unit) {
+        case DAY -> endDate.minusDays(amount);
+        case WEEK -> endDate.minusWeeks(amount);
+        case MONTH -> endDate.minusMonths(amount);
+      };
+    }
+
+    @Override
+    public String toString() {
+      return amount + String.valueOf(unit.suffix);
+    }
+  }
+
+  enum PeriodUnit {
+    DAY('d'), WEEK('w'), MONTH('m');
+
+    private final char suffix;
+
+    PeriodUnit(char suffix) {
+      this.suffix = suffix;
+    }
+
+    static PeriodUnit fromSuffix(char suffix) {
+      return switch (suffix) {
+        case 'd' -> DAY;
+        case 'w' -> WEEK;
+        case 'm' -> MONTH;
+        default -> throw new IllegalArgumentException("Unsupported period unit: " + suffix);
+      };
+    }
+  }
+
+  record Arguments(String currency, LocalDate endDate, List<Period> periods, boolean help) {
   }
 }
