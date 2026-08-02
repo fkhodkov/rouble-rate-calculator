@@ -1,32 +1,19 @@
 package info.fkhodkov.rates;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -37,8 +24,6 @@ import org.xml.sax.SAXException;
 
 /** Fetches, caches, and calculates official Bank of Russia exchange-rate averages. */
 final class ExchangeRateCalculator {
-  private static final String BASE_URL = "https://www.cbr.ru/scripts/";
-  private static final DateTimeFormatter CBR_QUERY_DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu");
   private static final DateTimeFormatter CBR_RECORD_DATE = DateTimeFormatter.ofPattern("dd.MM.uuuu");
 
   private final Clock clock;
@@ -52,7 +37,11 @@ final class ExchangeRateCalculator {
   CurrentRate currentRate(String currency)
       throws GeneralSecurityException, IOException, InterruptedException,
       ParserConfigurationException, SAXException {
-    Document document = parseXml(get(newHttpClient(), BASE_URL + "XML_daily.asp"));
+    CbrClient client = new CbrClient();
+    Document document;
+    try (InputStream input = client.downloadDailyRates()) {
+      document = parseXml(input);
+    }
     LocalDate effectiveDate = LocalDate.parse(
         document.getDocumentElement().getAttribute("Date"), CBR_RECORD_DATE);
     Element item = nodesAsElements(document.getElementsByTagName("Valute"))
@@ -106,7 +95,7 @@ final class ExchangeRateCalculator {
       if (!missing.isEmpty()) {
         RateCache.DateRange download = new RateCache.DateRange(
             missing.getFirst().from(), missing.getLast().to());
-        HttpClient client = newHttpClient();
+        CbrClient client = new CbrClient();
         String currencyId = findCurrencyId(client, currency);
         List<Rate> downloaded = downloadRates(client, currencyId, download.from(), download.to());
         cache.storeDownload(currency, download, today.minusDays(1), downloaded);
@@ -115,52 +104,12 @@ final class ExchangeRateCalculator {
     }
   }
 
-  private static HttpClient newHttpClient() throws GeneralSecurityException, IOException {
-    return HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(15))
-        .followRedirects(HttpClient.Redirect.NORMAL)
-        .sslContext(cbrSslContext())
-        .build();
-  }
-
-  /** Adds CBR's current public CA root to the JDK trust anchors without replacing them. */
-  private static SSLContext cbrSslContext() throws GeneralSecurityException, IOException {
-    TrustManagerFactory defaults = TrustManagerFactory.getInstance(
-        TrustManagerFactory.getDefaultAlgorithm());
-    defaults.init((KeyStore) null);
-    X509TrustManager defaultTrustManager = Stream.of(defaults.getTrustManagers())
-        .filter(X509TrustManager.class::isInstance)
-        .map(X509TrustManager.class::cast)
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException("No default X.509 trust manager"));
-
-    KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-    trustStore.load(null, null);
-    int index = 0;
-    for (X509Certificate certificate : defaultTrustManager.getAcceptedIssuers()) {
-      trustStore.setCertificateEntry("jdk-" + index++, certificate);
-    }
-    try (var input = ExchangeRateCalculator.class.getResourceAsStream(
-        "/certs/harica-tls-rsa-root-2021.pem")) {
-      if (input == null) {
-        throw new IllegalStateException("Bundled CBR CA certificate is missing");
-      }
-      X509Certificate haricaRoot = (X509Certificate) CertificateFactory.getInstance("X.509")
-          .generateCertificate(input);
-      trustStore.setCertificateEntry("harica-tls-rsa-root-2021", haricaRoot);
-    }
-
-    TrustManagerFactory combined = TrustManagerFactory.getInstance(
-        TrustManagerFactory.getDefaultAlgorithm());
-    combined.init(trustStore);
-    SSLContext context = SSLContext.getInstance("TLS");
-    context.init(null, combined.getTrustManagers(), null);
-    return context;
-  }
-
-  private static String findCurrencyId(HttpClient client, String currency)
+  private static String findCurrencyId(CbrClient client, String currency)
       throws IOException, InterruptedException, ParserConfigurationException, SAXException {
-    Document document = parseXml(get(client, BASE_URL + "XML_daily.asp"));
+    Document document;
+    try (InputStream input = client.downloadDailyRates()) {
+      document = parseXml(input);
+    }
     return nodesAsElements(document.getElementsByTagName("Valute"))
         .filter(item -> currency.equalsIgnoreCase(text(item, "CharCode")))
         .map(item -> item.getAttribute("ID"))
@@ -170,15 +119,14 @@ final class ExchangeRateCalculator {
   }
 
   private static List<Rate> downloadRates(
-      HttpClient client, String currencyId, LocalDate from, LocalDate to)
+      CbrClient client, String currencyId, LocalDate from, LocalDate to)
       throws IOException, InterruptedException, ParserConfigurationException, SAXException {
-    String url = BASE_URL + "XML_dynamic.asp?date_req1=" + encode(CBR_QUERY_DATE.format(from))
-        + "&date_req2=" + encode(CBR_QUERY_DATE.format(to))
-        + "&VAL_NM_RQ=" + encode(currencyId);
-    return parseRates(get(client, url));
+    try (InputStream input = client.downloadHistoricalRates(currencyId, from, to)) {
+      return parseRates(input);
+    }
   }
 
-  static List<Rate> parseRates(byte[] xml)
+  static List<Rate> parseRates(InputStream xml)
       throws ParserConfigurationException, IOException, SAXException {
     Document document = parseXml(xml);
     return nodesAsElements(document.getElementsByTagName("Record"))
@@ -191,7 +139,7 @@ final class ExchangeRateCalculator {
         .toList();
   }
 
-  private static Document parseXml(byte[] xml)
+  private static Document parseXml(InputStream xml)
       throws ParserConfigurationException, IOException, SAXException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -199,20 +147,7 @@ final class ExchangeRateCalculator {
     factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
     factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
     factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-    return factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml));
-  }
-
-  private static byte[] get(HttpClient client, String url) throws IOException, InterruptedException {
-    HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-        .timeout(Duration.ofSeconds(30))
-        .header("Accept", "application/xml,text/xml")
-        .header("User-Agent", "rouble-rate-calculator/1.0")
-        .GET().build();
-    HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-    if (response.statusCode() != 200) {
-      throw new IllegalStateException("CBR HTTP request failed with status " + response.statusCode());
-    }
-    return response.body();
+    return factory.newDocumentBuilder().parse(xml);
   }
 
   private static String text(Element parent, String tag) {
@@ -225,10 +160,6 @@ final class ExchangeRateCalculator {
 
   private static BigDecimal decimal(String value) {
     return new BigDecimal(value.replace(',', '.'));
-  }
-
-  private static String encode(String value) {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
 
   private static Stream<Element> nodesAsElements(NodeList nodes) {

@@ -72,4 +72,5 @@ Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 
 - `ExchangeRateApp` is the command-line entry point and formats results.
 - `ExchangeRateCalculator` contains fetching, caching, and calculation logic.
+- `CbrClient` downloads raw CBR XML streams and owns HTTP/TLS configuration.
 - `RateCache` manages SQLite persistence and cached date coverage.
