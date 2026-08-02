@@ -50,6 +50,12 @@ holidays. Today's mode cannot be combined with `--end-date` or `--periods`.
 
 Run with `--help` to see the command syntax.
 
+Run the unit tests with:
+
+```bash
+mvn test
+```
+
 ## Native executable with GraalVM CE
 
 Install GraalVM Community Edition 25 with the `native-image` tool, make it the
@@ -72,5 +78,6 @@ Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 
 - `ExchangeRateApp` is the command-line entry point and formats results.
 - `ExchangeRateCalculator` contains fetching, caching, and calculation logic.
-- `CbrClient` downloads raw CBR XML streams and owns HTTP/TLS configuration.
+- `CbrClient` is the injectable raw-XML client interface.
+- `CbrClientImpl` is its production HTTP/TLS implementation.
 - `RateCache` manages SQLite persistence and cached date coverage.

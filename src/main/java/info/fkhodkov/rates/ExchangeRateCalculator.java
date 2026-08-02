@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Path;
-import java.security.GeneralSecurityException;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -28,18 +27,19 @@ final class ExchangeRateCalculator {
 
   private final Clock clock;
   private final Path cachePath;
+  private final CbrClient cbrClient;
 
-  ExchangeRateCalculator(Clock clock, Path cachePath) {
+  ExchangeRateCalculator(Clock clock, Path cachePath, CbrClient cbrClient) {
     this.clock = clock;
     this.cachePath = cachePath;
+    this.cbrClient = cbrClient;
   }
 
   CurrentRate currentRate(String currency)
-      throws GeneralSecurityException, IOException, InterruptedException,
+      throws IOException, InterruptedException,
       ParserConfigurationException, SAXException {
-    CbrClient client = new CbrClient();
     Document document;
-    try (InputStream input = client.downloadDailyRates()) {
+    try (InputStream input = cbrClient.downloadDailyRates()) {
       document = parseXml(input);
     }
     LocalDate effectiveDate = LocalDate.parse(
@@ -56,7 +56,7 @@ final class ExchangeRateCalculator {
   }
 
   Calculation calculate(String currency, LocalDate endDate, List<Period> periods)
-      throws SQLException, GeneralSecurityException, IOException, ParserConfigurationException, InterruptedException, SAXException {
+      throws SQLException, IOException, ParserConfigurationException, InterruptedException, SAXException {
     LocalDate earliest = periods.stream()
         .map(period -> period.startDate(endDate))
         .min(LocalDate::compareTo)
@@ -88,16 +88,16 @@ final class ExchangeRateCalculator {
   }
 
   private List<Rate> loadRates(String currency, LocalDate from, LocalDate to)
-      throws SQLException, IOException, GeneralSecurityException, ParserConfigurationException, InterruptedException, SAXException {
+      throws SQLException, IOException, ParserConfigurationException, InterruptedException, SAXException {
     try (RateCache cache = new RateCache(cachePath)) {
       LocalDate today = LocalDate.now(clock);
       List<RateCache.DateRange> missing = cache.missingRanges(currency, from, to, today);
       if (!missing.isEmpty()) {
         RateCache.DateRange download = new RateCache.DateRange(
             missing.getFirst().from(), missing.getLast().to());
-        CbrClient client = new CbrClient();
-        String currencyId = findCurrencyId(client, currency);
-        List<Rate> downloaded = downloadRates(client, currencyId, download.from(), download.to());
+        String currencyId = findCurrencyId(cbrClient, currency);
+        List<Rate> downloaded = downloadRates(
+            cbrClient, currencyId, download.from(), download.to());
         cache.storeDownload(currency, download, today.minusDays(1), downloaded);
       }
       return cache.loadRates(currency, from, to);

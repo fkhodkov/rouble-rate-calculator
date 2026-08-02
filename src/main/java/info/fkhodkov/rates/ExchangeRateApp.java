@@ -52,7 +52,8 @@ public final class ExchangeRateApp implements Callable<Integer> {
   @Override
   public Integer call() {
     try {
-      ExchangeRateCalculator calculator = new ExchangeRateCalculator(CLOCK, defaultCachePath());
+      ExchangeRateCalculator calculator = new ExchangeRateCalculator(
+          CLOCK, defaultCachePath(), new CbrClientImpl());
       if (todayOnly) {
         if (commandSpec.commandLine().getParseResult().hasMatchedOption("--end-date")
             || commandSpec.commandLine().getParseResult().hasMatchedOption("--periods")) {
