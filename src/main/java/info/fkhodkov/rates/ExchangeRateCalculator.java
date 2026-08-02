@@ -49,6 +49,23 @@ final class ExchangeRateCalculator {
     this.cachePath = cachePath;
   }
 
+  CurrentRate currentRate(String currency)
+      throws GeneralSecurityException, IOException, InterruptedException,
+      ParserConfigurationException, SAXException {
+    Document document = parseXml(get(newHttpClient(), BASE_URL + "XML_daily.asp"));
+    LocalDate effectiveDate = LocalDate.parse(
+        document.getDocumentElement().getAttribute("Date"), CBR_RECORD_DATE);
+    Element item = nodesAsElements(document.getElementsByTagName("Valute"))
+        .filter(candidate -> currency.equalsIgnoreCase(text(candidate, "CharCode")))
+        .findAny()
+        .orElseThrow(() -> new IllegalArgumentException(
+            "Currency '%s' is not in the current CBR daily currency list.".formatted(currency)));
+    BigDecimal nominal = decimal(text(item, "Nominal"));
+    BigDecimal value = decimal(text(item, "Value"));
+    return new CurrentRate(currency, effectiveDate,
+        value.divide(nominal, 10, RoundingMode.HALF_UP));
+  }
+
   Calculation calculate(String currency, LocalDate endDate, List<Period> periods)
       throws SQLException, GeneralSecurityException, IOException, ParserConfigurationException, InterruptedException, SAXException {
     LocalDate earliest = periods.stream()

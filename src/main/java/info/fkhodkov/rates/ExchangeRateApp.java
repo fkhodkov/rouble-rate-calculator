@@ -10,6 +10,8 @@ import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Spec;
 
 /** Command-line entry point and presentation layer. */
 @Command(name = "rouble-rate-calculator",
@@ -33,6 +35,13 @@ public final class ExchangeRateApp implements Callable<Integer> {
       description = "Comma-separated periods using d, w, m, or y (default: ${DEFAULT-VALUE}).")
   private List<Period> periods;
 
+  @Option(names = {"-t", "--today"},
+      description = "Show only the currently effective CBR rate.")
+  private boolean todayOnly;
+
+  @Spec
+  private CommandSpec commandSpec;
+
   static void main(String[] args) {
     int exitCode = new CommandLine(new ExchangeRateApp()).execute(args);
     if (exitCode != 0) {
@@ -44,7 +53,16 @@ public final class ExchangeRateApp implements Callable<Integer> {
   public Integer call() {
     try {
       ExchangeRateCalculator calculator = new ExchangeRateCalculator(CLOCK, defaultCachePath());
-      print(calculator.calculate(currency, endDate, periods));
+      if (todayOnly) {
+        if (commandSpec.commandLine().getParseResult().hasMatchedOption("--end-date")
+            || commandSpec.commandLine().getParseResult().hasMatchedOption("--periods")) {
+          throw new IllegalArgumentException(
+              "--today cannot be combined with --end-date or --periods.");
+        }
+        print(calculator.currentRate(currency));
+      } else {
+        print(calculator.calculate(currency, endDate, periods));
+      }
       return 0;
     } catch (IllegalArgumentException e) {
       System.err.println("Error: " + e.getMessage());
@@ -81,5 +99,12 @@ public final class ExchangeRateApp implements Callable<Integer> {
           average.period(), average.value().toPlainString(), average.observations(),
           average.firstDate(), average.lastDate());
     }
+  }
+
+  private static void print(CurrentRate rate) {
+    System.out.printf(Locale.ROOT,
+        "Official CBR %s/RUB rate effective %s: %s RUB per 1 %s%n",
+        rate.currency(), rate.effectiveDate(), rate.rublesPerUnit().stripTrailingZeros().toPlainString(),
+        rate.currency());
   }
 }
