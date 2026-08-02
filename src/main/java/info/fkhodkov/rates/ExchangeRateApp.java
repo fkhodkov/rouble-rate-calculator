@@ -1,5 +1,10 @@
 package info.fkhodkov.rates;
 
+import info.fkhodkov.rates.data.CurrentRate;
+import info.fkhodkov.rates.data.Period;
+import info.fkhodkov.rates.data.PeriodAverage;
+import info.fkhodkov.rates.data.PeriodAverage.Data;
+import info.fkhodkov.rates.data.PeriodAverage.NoData;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -9,8 +14,8 @@ import java.util.Locale;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 /** Command-line entry point and presentation layer. */
@@ -92,13 +97,12 @@ public final class ExchangeRateApp implements Callable<Integer> {
         calculation.currency(), calculation.endDate());
     System.out.println("(arithmetic mean of published rates, RUB per 1 currency unit)");
     for (PeriodAverage average : calculation.averages()) {
-      if (!average.hasData()) {
-        System.out.printf(Locale.ROOT, "%6s: no data%n", average.period());
-        continue;
+      switch (average) {
+        case NoData(Period period) -> System.out.printf(Locale.ROOT, "%6s: no data%n", period);
+        case Data(var period, var value, var observations, var firstDate, var lastDate) -> System.out.printf(
+            Locale.ROOT, "%6s: %12s  (%d published rates, %s to %s)%n",
+            period, value.toPlainString(), observations, firstDate, lastDate);
       }
-      System.out.printf(Locale.ROOT, "%6s: %12s  (%d published rates, %s to %s)%n",
-          average.period(), average.value().toPlainString(), average.observations(),
-          average.firstDate(), average.lastDate());
     }
   }
 

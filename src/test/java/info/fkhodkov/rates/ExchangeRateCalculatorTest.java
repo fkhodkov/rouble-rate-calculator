@@ -1,9 +1,14 @@
 package info.fkhodkov.rates;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import info.fkhodkov.rates.data.CurrentRate;
+import info.fkhodkov.rates.data.Period;
+import info.fkhodkov.rates.data.PeriodAverage;
+import info.fkhodkov.rates.data.PeriodUnit;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -51,7 +56,7 @@ class ExchangeRateCalculatorTest {
     Calculation first = calculator.calculate("USD", LocalDate.of(2026, Month.JULY, 31),
         List.of(new Period(7, PeriodUnit.DAY)));
 
-    PeriodAverage average = first.averages().getFirst();
+    PeriodAverage.Data average = assertInstanceOf(PeriodAverage.Data.class, first.averages().getFirst());
     assertEquals(new BigDecimal("81.000000"), average.value());
     assertEquals(2, average.observations());
     assertEquals(1, client.getDailyDownloads());
@@ -62,7 +67,8 @@ class ExchangeRateCalculatorTest {
     Calculation cached = new ExchangeRateCalculator(CLOCK, database, offline).calculate(
         "USD", LocalDate.of(2026, Month.JULY, 31), List.of(new Period(7, PeriodUnit.DAY)));
 
-    assertEquals(new BigDecimal("81.000000"), cached.averages().getFirst().value());
+    PeriodAverage.Data data = assertInstanceOf(PeriodAverage.Data.class, cached.averages().getFirst());
+    assertEquals(new BigDecimal("81.000000"), data.value());
     assertEquals(0, offline.getDailyDownloads());
     assertEquals(0, offline.getHistoricalDownloads());
   }

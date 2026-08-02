@@ -1,5 +1,9 @@
 package info.fkhodkov.rates;
 
+import info.fkhodkov.rates.data.CurrentRate;
+import info.fkhodkov.rates.data.Period;
+import info.fkhodkov.rates.data.PeriodAverage;
+import info.fkhodkov.rates.data.Rate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -81,7 +85,7 @@ final class ExchangeRateCalculator {
           .map(Rate::rublesPerUnit)
           .reduce(BigDecimal.ZERO, BigDecimal::add)
           .divide(BigDecimal.valueOf(periodRates.size()), 6, RoundingMode.HALF_UP);
-      averages.add(new PeriodAverage(period, average, periodRates.size(),
+      averages.add(PeriodAverage.data(period, average, periodRates.size(),
           periodRates.getFirst().date(), periodRates.getLast().date()));
     }
     return new Calculation(currency, endDate, List.copyOf(averages));

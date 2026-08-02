@@ -3,6 +3,8 @@ package info.fkhodkov.rates;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import info.fkhodkov.rates.data.Period;
+import info.fkhodkov.rates.data.PeriodUnit;
 import org.junit.jupiter.api.Test;
 
 class PeriodConverterTest {

@@ -1,9 +1,9 @@
-package info.fkhodkov.rates;
+package info.fkhodkov.rates.data;
 
 import java.time.LocalDate;
 
-record Period(int amount, PeriodUnit unit) {
-  LocalDate startDate(LocalDate endDate) {
+public record Period(int amount, PeriodUnit unit) {
+  public LocalDate startDate(LocalDate endDate) {
     return unit.getStartToEnd().apply(endDate, (long) amount);
   }
 
