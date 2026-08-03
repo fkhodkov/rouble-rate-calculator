@@ -37,6 +37,9 @@ java -jar target/rouble-rate-calculator-1.0.0.jar --currency EUR --end-date 2026
 java -jar target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w,1y
 java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR -e 2026-07-31 -p 3m,7d,1w,1y
 java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR --today
+java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR --start-date 2026-01-01
+java -jar target/rouble-rate-calculator-1.0.0.jar -s 2026-01-01 -e 2026-06-30
+java -jar target/rouble-rate-calculator-1.0.0.jar -s 2026-01-01 -p 3m
 ```
 
 Both `--name value` and `--name=value` forms are accepted. Period units are `d`
@@ -46,7 +49,14 @@ provided by Picocli.
 
 Use `-t` or `--today` to print only the currently effective official rate. The
 output includes the CBR effective date, which may differ around weekends and
-holidays. Today's mode cannot be combined with `--end-date` or `--periods`.
+holidays. Today's mode cannot be combined with date or period options.
+
+Use `-s` or `--start-date` for an explicit interval:
+
+- Start only: from the start date through yesterday in Moscow.
+- Start and end: the inclusive interval between those dates.
+- Start and one period: from the start date through start plus that period.
+- Start, end, and period together: rejected as ambiguous.
 
 Run with `--help` to see the command syntax.
 

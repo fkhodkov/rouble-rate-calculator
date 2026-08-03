@@ -91,6 +91,23 @@ final class ExchangeRateCalculator {
     return new Calculation(currency, endDate, List.copyOf(averages));
   }
 
+  IntervalCalculation calculateInterval(String currency, LocalDate startDate, LocalDate endDate)
+      throws SQLException, IOException, ParserConfigurationException, InterruptedException, SAXException {
+    if (endDate.isBefore(startDate)) {
+      throw new IllegalArgumentException("End date must not be before start date.");
+    }
+    List<Rate> rates = loadRates(currency, startDate, endDate);
+    if (rates.isEmpty()) {
+      throw new IllegalStateException("The Bank of Russia returned no rates for this interval.");
+    }
+    BigDecimal average = rates.stream()
+        .map(Rate::rublesPerUnit)
+        .reduce(BigDecimal.ZERO, BigDecimal::add)
+        .divide(BigDecimal.valueOf(rates.size()), 6, RoundingMode.HALF_UP);
+    return new IntervalCalculation(currency, startDate, endDate, average, rates.size(),
+        rates.getFirst().date(), rates.getLast().date());
+  }
+
   private List<Rate> loadRates(String currency, LocalDate from, LocalDate to)
       throws SQLException, IOException, ParserConfigurationException, InterruptedException, SAXException {
     try (RateCache cache = new RateCache(cachePath)) {

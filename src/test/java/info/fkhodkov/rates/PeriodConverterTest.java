@@ -22,4 +22,12 @@ class PeriodConverterTest {
     assertThrows(IllegalArgumentException.class, () -> converter.convert("0d"));
     assertThrows(IllegalArgumentException.class, () -> converter.convert("1x"));
   }
+
+  @Test
+  void calculatesAnEndDateForwardFromAStartDate() {
+    Period period = new Period(3, PeriodUnit.MONTH);
+
+    assertEquals(java.time.LocalDate.of(2026, 4, 30),
+        period.endDate(java.time.LocalDate.of(2026, 1, 31)));
+  }
 }

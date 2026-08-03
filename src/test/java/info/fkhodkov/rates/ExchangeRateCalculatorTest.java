@@ -99,6 +99,35 @@ class ExchangeRateCalculatorTest {
   }
 
   @Test
+  void calculatesAnExplicitInclusiveInterval() throws Exception {
+    FakeCbrClient client = new FakeCbrClient();
+    client.setDailyXml(dailyXml("10.07.2026", "USD", "R01235", "1", "82,00"));
+    client.setHistoricalXml(historicalXml("R01235",
+        makeRecord("01.07.2026", "1", "80,00"),
+        makeRecord("10.07.2026", "1", "82,00")));
+
+    IntervalCalculation result = calculator(client, "interval.db").calculateInterval(
+        "USD", LocalDate.of(2026, Month.JULY, 1), LocalDate.of(2026, Month.JULY, 10));
+
+    assertEquals(new BigDecimal("81.000000"), result.value());
+    assertEquals(2, result.observations());
+    assertEquals(LocalDate.of(2026, Month.JULY, 1), client.getLastFrom());
+    assertEquals(LocalDate.of(2026, Month.JULY, 10), client.getLastTo());
+  }
+
+  @Test
+  void rejectsAnIntervalWhoseEndPrecedesItsStart() {
+    ExchangeRateCalculator calculator = calculator(
+        FakeCbrClient.throwing(new IOException("must not be called")), "invalid-interval.db");
+
+    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+        () -> calculator.calculateInterval(
+            "USD", LocalDate.of(2026, Month.JULY, 10), LocalDate.of(2026, Month.JULY, 1)));
+
+    assertEquals("End date must not be before start date.", thrown.getMessage());
+  }
+
+  @Test
   void propagatesClientFailure() {
     IOException failure = new IOException("CBR unavailable");
     ExchangeRateCalculator calculator = calculator(FakeCbrClient.throwing(failure), "error.db");

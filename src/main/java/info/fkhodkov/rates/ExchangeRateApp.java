@@ -31,6 +31,10 @@ public final class ExchangeRateApp implements Callable<Integer> {
       paramLabel = "CODE", description = "ISO currency code (default: ${DEFAULT-VALUE}).")
   private String currency;
 
+  @Option(names = {"-s", "--start-date"}, paramLabel = "YYYY-MM-DD",
+      description = "Inclusive start date for an explicit interval.")
+  private LocalDate startDate;
+
   @Option(names = {"-e", "--end-date"}, paramLabel = "YYYY-MM-DD",
       description = "Inclusive end date (default: yesterday in Moscow).")
   private LocalDate endDate = LocalDate.now(CLOCK).minusDays(1);
@@ -59,13 +63,32 @@ public final class ExchangeRateApp implements Callable<Integer> {
     try {
       ExchangeRateCalculator calculator = new ExchangeRateCalculator(
           CLOCK, defaultCachePath(), new CbrClientImpl());
+      var parseResult = commandSpec.commandLine().getParseResult();
+      boolean hasStart = parseResult.hasMatchedOption("--start-date");
+      boolean hasEnd = parseResult.hasMatchedOption("--end-date");
+      boolean hasPeriods = parseResult.hasMatchedOption("--periods");
       if (todayOnly) {
-        if (commandSpec.commandLine().getParseResult().hasMatchedOption("--end-date")
-            || commandSpec.commandLine().getParseResult().hasMatchedOption("--periods")) {
+        if (hasStart || hasEnd || hasPeriods) {
           throw new IllegalArgumentException(
-              "--today cannot be combined with --end-date or --periods.");
+              "--today cannot be combined with date or period options.");
         }
         print(calculator.currentRate(currency));
+      } else if (hasStart) {
+        if (hasEnd && hasPeriods) {
+          throw new IllegalArgumentException(
+              "--start-date, --end-date, and --periods cannot be used together.");
+        }
+        LocalDate intervalEnd;
+        if (hasPeriods) {
+          if (periods.size() != 1) {
+            throw new IllegalArgumentException(
+                "Exactly one period is required when --start-date is used.");
+          }
+          intervalEnd = periods.getFirst().endDate(startDate);
+        } else {
+          intervalEnd = hasEnd ? endDate : LocalDate.now(CLOCK).minusDays(1);
+        }
+        print(calculator.calculateInterval(currency, startDate, intervalEnd));
       } else {
         print(calculator.calculate(currency, endDate, periods));
       }
@@ -111,5 +134,16 @@ public final class ExchangeRateApp implements Callable<Integer> {
         "Official CBR %s/RUB rate effective %s: %s RUB per 1 %s%n",
         rate.currency(), rate.effectiveDate(), rate.rublesPerUnit().stripTrailingZeros().toPlainString(),
         rate.currency());
+  }
+
+  private static void print(IntervalCalculation calculation) {
+    System.out.printf(Locale.ROOT,
+        "Official CBR %s/RUB average from %s to %s: %s%n",
+        calculation.currency(), calculation.requestedStart(), calculation.requestedEnd(),
+        calculation.value().toPlainString());
+    System.out.printf(Locale.ROOT,
+        "(%d published rates, %s to %s; RUB per 1 %s)%n",
+        calculation.observations(), calculation.firstDate(), calculation.lastDate(),
+        calculation.currency());
   }
 }

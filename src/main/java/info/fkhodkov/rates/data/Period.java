@@ -7,6 +7,15 @@ public record Period(int amount, PeriodUnit unit) {
     return unit.getStartToEnd().apply(endDate, (long) amount);
   }
 
+  public LocalDate endDate(LocalDate startDate) {
+    return switch (unit) {
+      case DAY -> startDate.plusDays(amount);
+      case WEEK -> startDate.plusWeeks(amount);
+      case MONTH -> startDate.plusMonths(amount);
+      case YEAR -> startDate.plusYears(amount);
+    };
+  }
+
   @Override
   public String toString() {
     return amount + String.valueOf(unit.getSuffix());
