@@ -24,7 +24,7 @@ public final class RateAverages {
         averages.add(PeriodAverage.noData(period));
       } else {
         averages.add(PeriodAverage.data(period, average(periodRates), periodRates.size(),
-            periodRates.getFirst().date(), periodRates.getLast().date()));
+            periodRates.get(0).date(), periodRates.get(periodRates.size() - 1).date()));
       }
     }
     return new Calculation(currency, endDate, List.copyOf(averages));
@@ -39,7 +39,7 @@ public final class RateAverages {
       throw new IllegalStateException("The Bank of Russia returned no rates for this interval.");
     }
     return new IntervalCalculation(currency, startDate, endDate, average(rates), rates.size(),
-        rates.getFirst().date(), rates.getLast().date());
+        rates.get(0).date(), rates.get(rates.size() - 1).date());
   }
 
   private static BigDecimal average(List<Rate> rates) {

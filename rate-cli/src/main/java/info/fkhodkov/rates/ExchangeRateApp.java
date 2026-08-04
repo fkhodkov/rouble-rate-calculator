@@ -2,6 +2,7 @@ package info.fkhodkov.rates;
 
 import info.fkhodkov.rates.core.Calculation;
 import info.fkhodkov.rates.core.CurrentRate;
+import info.fkhodkov.rates.core.ExchangeRateCalculator;
 import info.fkhodkov.rates.core.IntervalCalculation;
 import info.fkhodkov.rates.core.Period;
 import info.fkhodkov.rates.core.PeriodAverage;
@@ -64,7 +65,8 @@ public final class ExchangeRateApp implements Callable<Integer> {
   public Integer call() {
     try {
       ExchangeRateCalculator calculator = new ExchangeRateCalculator(
-          CLOCK, defaultCachePath(), new CbrClientImpl());
+          CLOCK, () -> new RateCache(defaultCachePath()),
+          new CbrRateSource(new CbrClientImpl()));
       var parseResult = commandSpec.commandLine().getParseResult();
       boolean hasStart = parseResult.hasMatchedOption("--start-date");
       boolean hasEnd = parseResult.hasMatchedOption("--end-date");

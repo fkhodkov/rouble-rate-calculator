@@ -26,20 +26,20 @@ future dates remain refreshable.
 
 ```bash
 mvn package
-java -jar target/rouble-rate-calculator-1.0.0.jar
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar
 ```
 
 All parameters are named and optional. The defaults are USD, yesterday's date in
 Moscow, and a three-month period:
 
 ```bash
-java -jar target/rouble-rate-calculator-1.0.0.jar --currency EUR --end-date 2026-07-31
-java -jar target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w,1y
-java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR -e 2026-07-31 -p 3m,7d,1w,1y
-java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR --today
-java -jar target/rouble-rate-calculator-1.0.0.jar -c EUR --start-date 2026-01-01
-java -jar target/rouble-rate-calculator-1.0.0.jar -s 2026-01-01 -e 2026-06-30
-java -jar target/rouble-rate-calculator-1.0.0.jar -s 2026-01-01 -p 3m
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar --currency EUR --end-date 2026-07-31
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar --periods 3m,7d,1w,1y
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar -c EUR -e 2026-07-31 -p 3m,7d,1w,1y
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar -c EUR --today
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar -c EUR --start-date 2026-01-01
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar -s 2026-01-01 -e 2026-06-30
+java -jar rate-cli/target/rouble-rate-calculator-1.0.0.jar -s 2026-01-01 -p 3m
 ```
 
 Both `--name value` and `--name=value` forms are accepted. Period units are `d`
@@ -73,25 +73,21 @@ active JDK, and run:
 
 ```bash
 mvn -Pnative clean package
-./target/rouble-rate-calculator
+./rate-cli/target/rouble-rate-calculator
 ```
 
 The native executable accepts the same named options:
 
 ```bash
-./target/rouble-rate-calculator --currency EUR --periods 3m,7d,1w,1y
+./rate-cli/target/rouble-rate-calculator --currency EUR --periods 3m,7d,1w,1y
 ```
 
 Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 
-## Structure
+## Modules
 
-- `ExchangeRateApp` is the command-line entry point and formats results.
-- `core` contains the platform-neutral data model, period arithmetic, averages,
-  and the `ExchangeRateSource` and `ExchangeRateStore` contracts. It depends only
-  on the JDK and is intended to be shared with Android.
-- `ExchangeRateCalculator` coordinates a rate source, a store, and the core.
-- `CbrRateSource` parses raw CBR XML into normalized core records.
-- `CbrClient` is the injectable raw-XML client interface.
-- `CbrClientImpl` is its production HTTP/TLS implementation.
-- `RateCache` is the CLI's SQLite implementation of `ExchangeRateStore`.
+- `rate-core` is a standalone Java 17, JDK-only library containing the data model,
+  calculations, use cases, and the `ExchangeRateSource` and `ExchangeRateStore`
+  contracts. It is intended to be shared with Android.
+- `rate-cli` contains Picocli presentation, CBR HTTP/XML adapters, the SQLite
+  store, and GraalVM native-image configuration.

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import info.fkhodkov.rates.core.Calculation;
 import info.fkhodkov.rates.core.CurrentRate;
 import info.fkhodkov.rates.core.DateRange;
+import info.fkhodkov.rates.core.ExchangeRateCalculator;
 import info.fkhodkov.rates.core.IntervalCalculation;
 import info.fkhodkov.rates.core.Period;
 import info.fkhodkov.rates.core.PeriodAverage;
@@ -54,7 +55,7 @@ class ExchangeRateCalculatorTest {
         makeRecord("24.07.2026", "1", "80,00"),
         makeRecord("31.07.2026", "1", "82,00")));
     Path database = temporaryDirectory.resolve("cache.db");
-    ExchangeRateCalculator calculator = new ExchangeRateCalculator(CLOCK, database, client);
+    ExchangeRateCalculator calculator = calculator(client, database);
 
     Calculation first = calculator.calculate("USD", LocalDate.of(2026, Month.JULY, 31),
         List.of(new Period(7, PeriodUnit.DAY)));
@@ -67,7 +68,7 @@ class ExchangeRateCalculatorTest {
     assertTrue(client.getLastHistoricalStream().isClosed());
 
     FakeCbrClient offline = FakeCbrClient.throwing(new IOException("network must not be used"));
-    Calculation cached = new ExchangeRateCalculator(CLOCK, database, offline).calculate(
+    Calculation cached = calculator(offline, database).calculate(
         "USD", LocalDate.of(2026, Month.JULY, 31), List.of(new Period(7, PeriodUnit.DAY)));
 
     PeriodAverage.Data data = assertInstanceOf(PeriodAverage.Data.class, cached.averages().getFirst());
@@ -93,7 +94,7 @@ class ExchangeRateCalculatorTest {
     client.setHistoricalXml(historicalXml("R01239",
         makeRecord("29.11.2025", "1", "90,00")));
 
-    new ExchangeRateCalculator(CLOCK, database, client).calculate(
+    calculator(client, database).calculate(
         "EUR", LocalDate.of(2025, Month.NOVEMBER, 30), List.of(new Period(10, PeriodUnit.MONTH)));
 
     assertEquals(1, client.getHistoricalDownloads());
@@ -142,7 +143,12 @@ class ExchangeRateCalculatorTest {
   }
 
   private ExchangeRateCalculator calculator(FakeCbrClient client, String databaseName) {
-    return new ExchangeRateCalculator(CLOCK, temporaryDirectory.resolve(databaseName), client);
+    return calculator(client, temporaryDirectory.resolve(databaseName));
+  }
+
+  private ExchangeRateCalculator calculator(FakeCbrClient client, Path database) {
+    return new ExchangeRateCalculator(
+        CLOCK, () -> new RateCache(database), new CbrRateSource(client));
   }
 
   private static String dailyXml(

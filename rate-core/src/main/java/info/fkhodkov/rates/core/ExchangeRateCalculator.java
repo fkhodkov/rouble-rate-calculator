@@ -1,43 +1,28 @@
-package info.fkhodkov.rates;
+package info.fkhodkov.rates.core;
 
-import info.fkhodkov.rates.core.Calculation;
-import info.fkhodkov.rates.core.CurrentRate;
-import info.fkhodkov.rates.core.DateRange;
-import info.fkhodkov.rates.core.ExchangeRateSource;
-import info.fkhodkov.rates.core.ExchangeRateStore;
-import info.fkhodkov.rates.core.ExchangeRateStoreFactory;
-import info.fkhodkov.rates.core.IntervalCalculation;
-import info.fkhodkov.rates.core.Period;
-import info.fkhodkov.rates.core.Rate;
-import info.fkhodkov.rates.core.RateAverages;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Fetches, caches, and calculates official Bank of Russia exchange-rate averages. */
-final class ExchangeRateCalculator {
+/** Platform-neutral use cases for current rates and cached historical averages. */
+public final class ExchangeRateCalculator {
   private final Clock clock;
   private final ExchangeRateStoreFactory storeFactory;
   private final ExchangeRateSource source;
 
-  ExchangeRateCalculator(Clock clock, Path cachePath, CbrClient cbrClient) {
-    this(clock, () -> new RateCache(cachePath), new CbrRateSource(cbrClient));
-  }
-
-  ExchangeRateCalculator(
+  public ExchangeRateCalculator(
       Clock clock, ExchangeRateStoreFactory storeFactory, ExchangeRateSource source) {
     this.clock = clock;
     this.storeFactory = storeFactory;
     this.source = source;
   }
 
-  CurrentRate currentRate(String currency) throws IOException, InterruptedException {
+  public CurrentRate currentRate(String currency) throws IOException, InterruptedException {
     return source.currentRate(currency);
   }
 
-  Calculation calculate(String currency, LocalDate endDate, List<Period> periods)
+  public Calculation calculate(String currency, LocalDate endDate, List<Period> periods)
       throws Exception {
     LocalDate earliest = periods.stream()
         .map(period -> period.startDate(endDate))
@@ -47,12 +32,11 @@ final class ExchangeRateCalculator {
     if (rates.isEmpty()) {
       throw new IllegalStateException("The Bank of Russia returned no rates for this period.");
     }
-
     return RateAverages.forPeriods(currency, endDate, periods, rates);
   }
 
-  IntervalCalculation calculateInterval(String currency, LocalDate startDate, LocalDate endDate)
-      throws Exception {
+  public IntervalCalculation calculateInterval(
+      String currency, LocalDate startDate, LocalDate endDate) throws Exception {
     if (endDate.isBefore(startDate)) {
       throw new IllegalArgumentException("End date must not be before start date.");
     }
@@ -60,14 +44,13 @@ final class ExchangeRateCalculator {
     return RateAverages.forInterval(currency, startDate, endDate, rates);
   }
 
-  private List<Rate> loadRates(String currency, LocalDate from, LocalDate to)
-      throws Exception {
+  private List<Rate> loadRates(String currency, LocalDate from, LocalDate to) throws Exception {
     try (ExchangeRateStore store = storeFactory.open()) {
       LocalDate today = LocalDate.now(clock);
       List<DateRange> missing = store.missingRanges(currency, from, to, today);
       if (!missing.isEmpty()) {
         DateRange download = new DateRange(
-            missing.getFirst().from(), missing.getLast().to());
+            missing.get(0).from(), missing.get(missing.size() - 1).to());
         List<Rate> downloaded = source.historicalRates(currency, download.from(), download.to());
         store.storeDownload(currency, download, today.minusDays(1), downloaded);
       }
