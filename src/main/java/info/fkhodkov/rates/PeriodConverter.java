@@ -1,7 +1,7 @@
 package info.fkhodkov.rates;
 
-import info.fkhodkov.rates.data.Period;
-import info.fkhodkov.rates.data.PeriodUnit;
+import info.fkhodkov.rates.core.Period;
+import info.fkhodkov.rates.core.PeriodUnit;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -9,7 +9,7 @@ import picocli.CommandLine;
 
 final class PeriodConverter implements CommandLine.ITypeConverter<Period> {
   static final String UNITS_PATTERN = Arrays.stream(PeriodUnit.values())
-      .map(PeriodUnit::getSuffix)
+      .map(PeriodUnit::suffix)
       .map(String::valueOf)
       .collect(Collectors.joining("", "[", "]"));
 

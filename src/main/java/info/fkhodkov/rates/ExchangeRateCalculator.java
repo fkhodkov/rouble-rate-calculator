@@ -1,9 +1,11 @@
 package info.fkhodkov.rates;
 
-import info.fkhodkov.rates.data.CurrentRate;
-import info.fkhodkov.rates.data.Period;
-import info.fkhodkov.rates.data.PeriodAverage;
-import info.fkhodkov.rates.data.Rate;
+import info.fkhodkov.rates.core.Calculation;
+import info.fkhodkov.rates.core.CurrentRate;
+import info.fkhodkov.rates.core.IntervalCalculation;
+import info.fkhodkov.rates.core.Period;
+import info.fkhodkov.rates.core.Rate;
+import info.fkhodkov.rates.core.RateAverages;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -13,7 +15,6 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -70,42 +71,13 @@ final class ExchangeRateCalculator {
       throw new IllegalStateException("The Bank of Russia returned no rates for this period.");
     }
 
-    List<PeriodAverage> averages = new ArrayList<>();
-    for (Period period : periods) {
-      LocalDate from = period.startDate(endDate);
-      List<Rate> periodRates = rates.stream()
-          .filter(rate -> !rate.date().isBefore(from))
-          .filter(rate -> !rate.date().isAfter(endDate))
-          .toList();
-      if (periodRates.isEmpty()) {
-        averages.add(PeriodAverage.noData(period));
-        continue;
-      }
-      BigDecimal average = periodRates.stream()
-          .map(Rate::rublesPerUnit)
-          .reduce(BigDecimal.ZERO, BigDecimal::add)
-          .divide(BigDecimal.valueOf(periodRates.size()), 6, RoundingMode.HALF_UP);
-      averages.add(PeriodAverage.data(period, average, periodRates.size(),
-          periodRates.getFirst().date(), periodRates.getLast().date()));
-    }
-    return new Calculation(currency, endDate, List.copyOf(averages));
+    return RateAverages.forPeriods(currency, endDate, periods, rates);
   }
 
   IntervalCalculation calculateInterval(String currency, LocalDate startDate, LocalDate endDate)
       throws SQLException, IOException, ParserConfigurationException, InterruptedException, SAXException {
-    if (endDate.isBefore(startDate)) {
-      throw new IllegalArgumentException("End date must not be before start date.");
-    }
     List<Rate> rates = loadRates(currency, startDate, endDate);
-    if (rates.isEmpty()) {
-      throw new IllegalStateException("The Bank of Russia returned no rates for this interval.");
-    }
-    BigDecimal average = rates.stream()
-        .map(Rate::rublesPerUnit)
-        .reduce(BigDecimal.ZERO, BigDecimal::add)
-        .divide(BigDecimal.valueOf(rates.size()), 6, RoundingMode.HALF_UP);
-    return new IntervalCalculation(currency, startDate, endDate, average, rates.size(),
-        rates.getFirst().date(), rates.getLast().date());
+    return RateAverages.forInterval(currency, startDate, endDate, rates);
   }
 
   private List<Rate> loadRates(String currency, LocalDate from, LocalDate to)

@@ -1,6 +1,6 @@
 package info.fkhodkov.rates;
 
-import info.fkhodkov.rates.data.Rate;
+import info.fkhodkov.rates.core.Rate;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;

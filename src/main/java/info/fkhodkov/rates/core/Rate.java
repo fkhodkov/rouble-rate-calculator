@@ -1,4 +1,4 @@
-package info.fkhodkov.rates.data;
+package info.fkhodkov.rates.core;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

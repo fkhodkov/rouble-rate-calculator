@@ -1,10 +1,12 @@
 package info.fkhodkov.rates;
 
-import info.fkhodkov.rates.data.CurrentRate;
-import info.fkhodkov.rates.data.Period;
-import info.fkhodkov.rates.data.PeriodAverage;
-import info.fkhodkov.rates.data.PeriodAverage.Data;
-import info.fkhodkov.rates.data.PeriodAverage.NoData;
+import info.fkhodkov.rates.core.Calculation;
+import info.fkhodkov.rates.core.CurrentRate;
+import info.fkhodkov.rates.core.IntervalCalculation;
+import info.fkhodkov.rates.core.Period;
+import info.fkhodkov.rates.core.PeriodAverage;
+import info.fkhodkov.rates.core.PeriodAverage.Data;
+import info.fkhodkov.rates.core.PeriodAverage.NoData;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;

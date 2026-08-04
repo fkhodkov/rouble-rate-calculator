@@ -1,9 +1,9 @@
-package info.fkhodkov.rates;
+package info.fkhodkov.rates.core;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-record IntervalCalculation(
+public record IntervalCalculation(
     String currency,
     LocalDate requestedStart,
     LocalDate requestedEnd,

@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import info.fkhodkov.rates.data.CurrentRate;
-import info.fkhodkov.rates.data.Period;
-import info.fkhodkov.rates.data.PeriodAverage;
-import info.fkhodkov.rates.data.PeriodUnit;
+import info.fkhodkov.rates.core.Calculation;
+import info.fkhodkov.rates.core.CurrentRate;
+import info.fkhodkov.rates.core.IntervalCalculation;
+import info.fkhodkov.rates.core.Period;
+import info.fkhodkov.rates.core.PeriodAverage;
+import info.fkhodkov.rates.core.PeriodUnit;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Path;
