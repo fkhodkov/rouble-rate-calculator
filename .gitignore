@@ -1,4 +1,13 @@
 target/
+build/
+.gradle/
+.kotlin/
+.externalNativeBuild/
+.cxx/
+captures/
+local.properties
+*.jks
+*.keystore
 *.class
 .idea/
 *.iml

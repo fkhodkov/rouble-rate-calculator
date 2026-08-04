@@ -84,6 +84,23 @@ The native executable accepts the same named options:
 
 Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 
+## Android app
+
+The initial Android application lives in `android-app` and consumes the same
+`rate-core` sources through the Gradle multi-project build. It currently shows a
+Compose scaffold whose ViewModel uses the shared period logic; CBR networking
+and Room persistence are intentionally deferred to the next phase.
+
+Open the repository root in Android Studio, or build from a terminal with:
+
+```bash
+./gradlew test assembleDebug
+```
+
+The debug APK is written to
+`android-app/build/outputs/apk/debug/android-app-debug.apk`. The current scaffold
+uses Android SDK 34, Build Tools 35.0.0, Java 17, and an Android API 26 minimum.
+
 ## Modules
 
 - `rate-core` is a standalone Java 17, JDK-only library containing the data model,
@@ -91,3 +108,4 @@ Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
   contracts. It is intended to be shared with Android.
 - `rate-cli` contains Picocli presentation, CBR HTTP/XML adapters, the SQLite
   store, and GraalVM native-image configuration.
+- `android-app` contains the Kotlin, Jetpack Compose, and ViewModel Android UI.
