@@ -1,5 +1,7 @@
 package info.fkhodkov.rates;
 
+import info.fkhodkov.rates.core.DateRange;
+import info.fkhodkov.rates.core.ExchangeRateStore;
 import info.fkhodkov.rates.core.Rate;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -17,7 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /** Persistent SQLite storage for rates and date ranges already fetched from CBR. */
-final class RateCache implements AutoCloseable {
+final class RateCache implements ExchangeRateStore {
   private final Connection connection;
 
   RateCache(Path database) throws IOException, SQLException {
@@ -48,7 +50,8 @@ final class RateCache implements AutoCloseable {
     }
   }
 
-  List<DateRange> missingRanges(
+  @Override
+  public List<DateRange> missingRanges(
       String currency, LocalDate requestedFrom, LocalDate requestedTo, LocalDate today)
       throws SQLException {
     List<DateRange> missing = new ArrayList<>();
@@ -82,7 +85,8 @@ final class RateCache implements AutoCloseable {
     missing.add(new DateRange(cursor, to));
   }
 
-  List<Rate> loadRates(String currency, LocalDate from, LocalDate to)
+  @Override
+  public List<Rate> loadRates(String currency, LocalDate from, LocalDate to)
       throws SQLException {
     String sql = """
         SELECT rate_date, rubles_per_unit
@@ -104,7 +108,8 @@ final class RateCache implements AutoCloseable {
     }
   }
 
-  void storeDownload(
+  @Override
+  public void storeDownload(
       String currency, DateRange downloaded, LocalDate historicalThrough,
       List<Rate> rates) throws SQLException {
     connection.setAutoCommit(false);
@@ -189,6 +194,4 @@ final class RateCache implements AutoCloseable {
     connection.close();
   }
 
-  record DateRange(LocalDate from, LocalDate to) {
-  }
 }

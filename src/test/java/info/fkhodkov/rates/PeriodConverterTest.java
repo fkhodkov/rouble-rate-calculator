@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import info.fkhodkov.rates.core.Period;
 import info.fkhodkov.rates.core.PeriodUnit;
+import java.time.Month;
 import org.junit.jupiter.api.Test;
 
 class PeriodConverterTest {
@@ -27,7 +28,7 @@ class PeriodConverterTest {
   void calculatesAnEndDateForwardFromAStartDate() {
     Period period = new Period(3, PeriodUnit.MONTH);
 
-    assertEquals(java.time.LocalDate.of(2026, 4, 30),
-        period.endDate(java.time.LocalDate.of(2026, 1, 31)));
+    assertEquals(java.time.LocalDate.of(2026, Month.APRIL, 30),
+        period.endDate(java.time.LocalDate.of(2026, Month.JANUARY, 31)));
   }
 }

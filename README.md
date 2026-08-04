@@ -87,9 +87,11 @@ Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 ## Structure
 
 - `ExchangeRateApp` is the command-line entry point and formats results.
-- `core` contains the platform-neutral data model, period arithmetic, and averages;
-  it depends only on the JDK and is intended to be shared with Android.
-- `ExchangeRateCalculator` coordinates fetching, XML parsing, caching, and the core.
+- `core` contains the platform-neutral data model, period arithmetic, averages,
+  and the `ExchangeRateSource` and `ExchangeRateStore` contracts. It depends only
+  on the JDK and is intended to be shared with Android.
+- `ExchangeRateCalculator` coordinates a rate source, a store, and the core.
+- `CbrRateSource` parses raw CBR XML into normalized core records.
 - `CbrClient` is the injectable raw-XML client interface.
 - `CbrClientImpl` is its production HTTP/TLS implementation.
-- `RateCache` manages SQLite persistence and cached date coverage.
+- `RateCache` is the CLI's SQLite implementation of `ExchangeRateStore`.

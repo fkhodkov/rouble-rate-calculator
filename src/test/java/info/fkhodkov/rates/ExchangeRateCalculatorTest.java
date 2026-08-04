@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import info.fkhodkov.rates.core.Calculation;
 import info.fkhodkov.rates.core.CurrentRate;
+import info.fkhodkov.rates.core.DateRange;
 import info.fkhodkov.rates.core.IntervalCalculation;
 import info.fkhodkov.rates.core.Period;
 import info.fkhodkov.rates.core.PeriodAverage;
@@ -81,10 +82,10 @@ class ExchangeRateCalculatorTest {
     try (RateCache cache = new RateCache(database)) {
       LocalDate historicalThrough = LocalDate.of(2026, Month.JANUARY, 1);
       cache.storeDownload("EUR",
-          new RateCache.DateRange(LocalDate.of(2025, Month.MARCH, 1), LocalDate.of(2025, Month.APRIL, 30)),
+          new DateRange(LocalDate.of(2025, Month.MARCH, 1), LocalDate.of(2025, Month.APRIL, 30)),
           historicalThrough, List.of());
       cache.storeDownload("EUR",
-          new RateCache.DateRange(LocalDate.of(2025, Month.JULY, 1), LocalDate.of(2025, Month.AUGUST, 31)),
+          new DateRange(LocalDate.of(2025, Month.JULY, 1), LocalDate.of(2025, Month.AUGUST, 31)),
           historicalThrough, List.of());
     }
     FakeCbrClient client = new FakeCbrClient();
