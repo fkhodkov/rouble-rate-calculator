@@ -32,6 +32,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -46,6 +49,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.text.NumberFormat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +72,7 @@ internal fun RateScreen(
     rateViewModel: RateViewModel = viewModel(factory = RateViewModel.factory(calculator)),
 ) {
     val state by rateViewModel.state.collectAsState()
+    val loadingDescription = stringResource(R.string.loading_rates)
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier = Modifier
@@ -75,8 +82,8 @@ internal fun RateScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-        Text("Rouble Rate Calculator", style = MaterialTheme.typography.headlineMedium)
-        Text("Official Bank of Russia rates", color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.subtitle), color = MaterialTheme.colorScheme.primary)
         OutlinedTextField(
             value = state.currency,
             onValueChange = rateViewModel::updateCurrency,
@@ -88,8 +95,8 @@ internal fun RateScreen(
                 keyboardType = KeyboardType.Ascii,
                 imeAction = ImeAction.Next,
             ),
-            label = { Text("Currency") },
-            supportingText = { Text("Three-letter code, for example USD") },
+            label = { Text(stringResource(R.string.currency)) },
+            supportingText = { Text(stringResource(R.string.currency_hint)) },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CalculationMode.entries.forEach { mode ->
@@ -97,42 +104,53 @@ internal fun RateScreen(
                     selected = state.mode == mode,
                     onClick = { rateViewModel.selectMode(mode) },
                     enabled = !state.loading,
-                    label = { Text(mode.label) },
+                    label = { Text(mode.localizedLabel()) },
                 )
             }
         }
         when (state.mode) {
             CalculationMode.PERIODS -> {
-                DateField("End date", state.endDate, rateViewModel::updateEndDate, !state.loading)
+                DateField(
+                    stringResource(R.string.end_date), state.endDate,
+                    rateViewModel::updateEndDate, !state.loading,
+                )
                 PeriodField(
                     state.periods, rateViewModel::updatePeriods, !state.loading, true,
                     rateViewModel::calculate,
                 )
             }
             CalculationMode.INTERVAL -> {
-                DateField("Start date", state.startDate, rateViewModel::updateStartDate, !state.loading)
-                DateField("End date (optional)", state.endDate, rateViewModel::updateEndDate, !state.loading)
+                DateField(
+                    stringResource(R.string.start_date), state.startDate,
+                    rateViewModel::updateStartDate, !state.loading,
+                )
+                DateField(
+                    stringResource(R.string.end_date_optional), state.endDate,
+                    rateViewModel::updateEndDate, !state.loading,
+                )
                 PeriodField(
                     state.periods, rateViewModel::updatePeriods, !state.loading, false,
                     rateViewModel::calculate,
                 )
-                Text("Leave end date and period empty to calculate through yesterday.")
+                Text(stringResource(R.string.interval_hint))
             }
-            CalculationMode.TODAY -> Text("Show the currently effective official CBR rate.")
+            CalculationMode.TODAY -> Text(stringResource(R.string.today_hint))
         }
         Button(
             onClick = rateViewModel::calculate,
             enabled = !state.loading,
         ) {
-            Text("Calculate")
+            Text(stringResource(R.string.calculate))
         }
         when {
             state.loading -> CircularProgressIndicator(
-                modifier = Modifier.semantics { contentDescription = "Loading rates" },
+                modifier = Modifier.semantics {
+                    contentDescription = loadingDescription
+                },
             )
             state.error != null -> {
                 Text(
-                    state.error.orEmpty(),
+                    state.error.localizedMessage().orEmpty(),
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
                 )
@@ -140,44 +158,70 @@ internal fun RateScreen(
         }
         state.periodResults.forEach { result ->
             Text(
-                "${result.period}: ${result.startDate} through ${result.endDate}",
+                stringResource(
+                    R.string.period_range, result.period,
+                    localizedDate(result.startDate), localizedDate(result.endDate),
+                ),
                 style = MaterialTheme.typography.titleMedium,
             )
             if (result.average == null) {
-                Text("No published rates")
+                Text(stringResource(R.string.no_rates))
             } else {
                 Text(
-                    "${result.average} RUB",
+                    stringResource(R.string.rate_rub, localizedNumber(result.average)),
                     style = MaterialTheme.typography.headlineLarge,
                 )
-                Text("${result.observations} published rates")
-                Text("${result.firstDate} to ${result.lastDate}")
+                Text(pluralStringResource(
+                    R.plurals.published_rates, result.observations, result.observations,
+                ))
+                Text(stringResource(
+                    R.string.published_range,
+                    localizedDate(result.firstDate), localizedDate(result.lastDate),
+                ))
             }
         }
         state.intervalResult?.let { result ->
             Text(
-                "${result.startDate} through ${result.endDate}",
+                stringResource(
+                    R.string.date_range,
+                    localizedDate(result.startDate), localizedDate(result.endDate),
+                ),
                 style = MaterialTheme.typography.titleMedium,
             )
-            Text("${result.average} RUB", style = MaterialTheme.typography.headlineLarge)
-            Text("${result.observations} published rates")
-            Text("${result.firstDate} to ${result.lastDate}")
+            Text(
+                stringResource(R.string.rate_rub, localizedNumber(result.average)),
+                style = MaterialTheme.typography.headlineLarge,
+            )
+            Text(pluralStringResource(
+                R.plurals.published_rates, result.observations, result.observations,
+            ))
+            Text(stringResource(
+                R.string.published_range,
+                localizedDate(result.firstDate), localizedDate(result.lastDate),
+            ))
         }
         state.currentResult?.let { result ->
-            Text("Effective ${result.effectiveDate}", style = MaterialTheme.typography.titleMedium)
-            Text("${result.rate} RUB", style = MaterialTheme.typography.headlineLarge)
-            Text("per 1 ${state.currency}")
+            Text(
+                stringResource(R.string.effective_date, localizedDate(result.effectiveDate)),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                stringResource(R.string.rate_rub, localizedNumber(result.rate)),
+                style = MaterialTheme.typography.headlineLarge,
+            )
+            Text(stringResource(R.string.per_currency, state.currency))
         }
         }
     }
 }
 
-private val CalculationMode.label: String
-    get() = when (this) {
-        CalculationMode.PERIODS -> "Periods"
-        CalculationMode.INTERVAL -> "Interval"
-        CalculationMode.TODAY -> "Today"
-    }
+@Composable
+private fun CalculationMode.localizedLabel(): String =
+    stringResource(when (this) {
+        CalculationMode.PERIODS -> R.string.mode_periods
+        CalculationMode.INTERVAL -> R.string.mode_interval
+        CalculationMode.TODAY -> R.string.mode_today
+    })
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -199,9 +243,11 @@ private fun DateField(
             imeAction = ImeAction.Next,
         ),
         label = { Text(label) },
-        supportingText = { Text("YYYY-MM-DD") },
+        supportingText = { Text(stringResource(R.string.date_format)) },
         trailingIcon = {
-            TextButton(onClick = { showPicker = true }, enabled = enabled) { Text("Pick") }
+            TextButton(onClick = { showPicker = true }, enabled = enabled) {
+                Text(stringResource(R.string.pick_date))
+            }
         },
     )
     if (showPicker) {
@@ -217,10 +263,12 @@ private fun DateField(
                         pickerState.selectedDateMillis?.let { onValueChange(it.toLocalDate().toString()) }
                         showPicker = false
                     },
-                ) { Text("OK") }
+                ) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showPicker = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         ) {
             DatePicker(state = pickerState)
@@ -247,9 +295,9 @@ private fun PeriodField(
             imeAction = ImeAction.Done,
         ),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
-        label = { Text(if (multiple) "Periods" else "Period (optional)") },
+        label = { Text(stringResource(if (multiple) R.string.periods else R.string.period_optional)) },
         supportingText = {
-            Text(if (multiple) "Comma-separated: 3m,7d,1w" else "One period, for example 3m")
+            Text(stringResource(if (multiple) R.string.periods_hint else R.string.period_hint))
         },
     )
 }
@@ -261,3 +309,36 @@ private fun LocalDate.toEpochMillis(): Long =
 
 private fun Long.toLocalDate(): LocalDate =
     Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
+
+@Composable
+private fun RateError?.localizedMessage(): String? = this?.let {
+    stringResource(when (it) {
+        RateError.INVALID_CURRENCY -> R.string.error_invalid_currency
+        RateError.PERIOD_REQUIRED -> R.string.error_period_required
+        RateError.INVALID_PERIOD -> R.string.error_invalid_period
+        RateError.START_DATE_REQUIRED -> R.string.error_start_required
+        RateError.END_DATE_REQUIRED -> R.string.error_end_required
+        RateError.START_DATE_FORMAT -> R.string.error_start_format
+        RateError.END_DATE_FORMAT -> R.string.error_end_format
+        RateError.INTERVAL_CONFLICT -> R.string.error_interval_conflict
+        RateError.SINGLE_PERIOD_REQUIRED -> R.string.error_single_period
+        RateError.LOAD_FAILED -> R.string.error_load_failed
+    })
+}
+
+@Composable
+private fun localizedDate(date: LocalDate?): String {
+    if (date == null) return ""
+    val locale = LocalConfiguration.current.locales[0]
+    return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(date)
+}
+
+@Composable
+private fun localizedNumber(value: String?): String {
+    if (value == null) return ""
+    val locale = LocalConfiguration.current.locales[0]
+    return NumberFormat.getNumberInstance(locale).apply {
+        isGroupingUsed = false
+        maximumFractionDigits = 10
+    }.format(value.toBigDecimal())
+}

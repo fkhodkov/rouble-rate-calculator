@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Калькулятор курса рубля</string>
+    <string name="subtitle">Официальные курсы Банка России</string>
+    <string name="currency">Валюта</string>
+    <string name="currency_hint">Трёхбуквенный код, например USD</string>
+    <string name="mode_periods">Периоды</string>
+    <string name="mode_interval">Интервал</string>
+    <string name="mode_today">Сегодня</string>
+    <string name="start_date">Начальная дата</string>
+    <string name="end_date">Конечная дата</string>
+    <string name="end_date_optional">Конечная дата (необязательно)</string>
+    <string name="date_format">ГГГГ-ММ-ДД</string>
+    <string name="pick_date">Выбрать</string>
+    <string name="ok">ОК</string>
+    <string name="cancel">Отмена</string>
+    <string name="periods">Периоды</string>
+    <string name="period_optional">Период (необязательно)</string>
+    <string name="periods_hint">Через запятую: 3m,7d,1w</string>
+    <string name="period_hint">Один период, например 3m</string>
+    <string name="interval_hint">Оставьте конечную дату и период пустыми для расчёта по вчерашний день.</string>
+    <string name="today_hint">Показать действующий официальный курс ЦБ РФ.</string>
+    <string name="calculate">Рассчитать</string>
+    <string name="loading_rates">Загрузка курсов</string>
+    <string name="no_rates">Нет опубликованных курсов</string>
+    <string name="period_range">%1$s: с %2$s по %3$s</string>
+    <string name="date_range">С %1$s по %2$s</string>
+    <string name="rate_rub">%1$s RUB</string>
+    <string name="published_range">С %1$s по %2$s</string>
+    <string name="effective_date">Действует с %1$s</string>
+    <string name="per_currency">за 1 %1$s</string>
+    <string name="error_invalid_currency">Код валюты должен состоять из трёх латинских букв, например USD или EUR.</string>
+    <string name="error_period_required">Укажите хотя бы один период.</string>
+    <string name="error_invalid_period">Период должен быть положительным числом с единицей d, w, m или y.</string>
+    <string name="error_start_required">Укажите начальную дату.</string>
+    <string name="error_end_required">Укажите конечную дату.</string>
+    <string name="error_start_format">Начальная дата должна быть в формате ГГГГ-ММ-ДД.</string>
+    <string name="error_end_format">Конечная дата должна быть в формате ГГГГ-ММ-ДД.</string>
+    <string name="error_interval_conflict">Начальную дату, конечную дату и период нельзя использовать одновременно.</string>
+    <string name="error_single_period">С начальной датой укажите ровно один период.</string>
+    <string name="error_load_failed">Не удалось загрузить курсы валют.</string>
+    <plurals name="published_rates">
+        <item quantity="one">%d опубликованное значение</item>
+        <item quantity="few">%d опубликованных значения</item>
+        <item quantity="many">%d опубликованных значений</item>
+        <item quantity="other">%d опубликованного значения</item>
+    </plurals>
+</resources>

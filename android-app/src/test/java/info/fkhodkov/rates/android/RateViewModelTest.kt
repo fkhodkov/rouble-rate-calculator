@@ -84,7 +84,7 @@ class RateViewModelTest {
         viewModel.calculate()
 
         assertEquals(
-            "Start date, end date, and period cannot be used together.",
+            RateError.INTERVAL_CONFLICT,
             viewModel.state.value.error,
         )
     }
@@ -120,7 +120,7 @@ class RateViewModelTest {
 
         viewModel.calculate()
 
-        assertEquals("end date must use YYYY-MM-DD format.", viewModel.state.value.error)
+        assertEquals(RateError.END_DATE_FORMAT, viewModel.state.value.error)
         assertNull(viewModel.state.value.intervalResult)
     }
 

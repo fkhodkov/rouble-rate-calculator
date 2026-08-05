@@ -9,7 +9,7 @@ final class CurrencyConverter implements CommandLine.ITypeConverter<String> {
     String normalized = value.trim().toUpperCase(Locale.ROOT);
     if (!normalized.matches("[A-Z]{3}")) {
       throw new IllegalArgumentException(
-          "currency must be a three-letter ISO code, such as USD");
+          CliMessages.defaultText("error.currency"));
     }
     return normalized;
   }

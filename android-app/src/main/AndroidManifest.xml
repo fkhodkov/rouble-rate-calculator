@@ -5,7 +5,7 @@
     <application
         android:name=".RateApplication"
         android:allowBackup="true"
-        android:label="Rouble Rate Calculator"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.RoubleRateCalculator">
         <activity

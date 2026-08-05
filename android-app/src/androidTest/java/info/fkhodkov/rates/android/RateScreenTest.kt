@@ -1,10 +1,16 @@
 package info.fkhodkov.rates.android
 
+import android.content.res.Configuration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
@@ -19,6 +25,8 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
@@ -62,15 +70,38 @@ class RateScreenTest {
         compose.onNodeWithText("Calculate").performClick()
         compose.waitUntil { !viewModel.state.value.loading }
 
-        compose.onNodeWithText("Effective 2026-08-05").assertIsDisplayed()
+        compose.onNodeWithText("Effective Aug 5, 2026").assertIsDisplayed()
         compose.onNodeWithText("78.5 RUB").assertIsDisplayed()
         compose.onNodeWithText("per 1 USD").assertIsDisplayed()
     }
 
-    private fun show(viewModel: RateViewModel) {
+    @Test
+    fun displaysRussianTranslation() {
+        val viewModel = viewModel()
+        show(viewModel, Locale.forLanguageTag("ru"))
+        compose.waitUntil { !viewModel.state.value.loading }
+
+        compose.onNodeWithText("Калькулятор курса рубля").assertIsDisplayed()
+        compose.onAllNodesWithText("Периоды").assertCountEquals(2)
+        compose.onNodeWithText("Интервал").assertIsDisplayed()
+        compose.onNodeWithText("Сегодня").assertIsDisplayed()
+        compose.onNodeWithText("Рассчитать").assertIsDisplayed()
+    }
+
+    private fun show(viewModel: RateViewModel, locale: Locale = Locale.ENGLISH) {
+        val baseContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val configuration = Configuration(baseContext.resources.configuration).apply {
+            setLocale(locale)
+        }
+        val localizedContext = baseContext.createConfigurationContext(configuration)
         compose.setContent {
-            MaterialTheme {
-                RateScreen(calculator(), viewModel)
+            CompositionLocalProvider(
+                LocalContext provides localizedContext,
+                LocalConfiguration provides configuration,
+            ) {
+                MaterialTheme {
+                    RateScreen(calculator(), viewModel)
+                }
             }
         }
     }

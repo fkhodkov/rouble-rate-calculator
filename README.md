@@ -75,6 +75,12 @@ Use `-s` or `--start-date` for an explicit interval:
 
 Run with `--help` to see the command syntax.
 
+CLI output and help are available in English and Russian. By default the app
+uses the system language when it is Russian and falls back to English for other
+locales. Select a language explicitly with `-l en`, `--language ru`, or the
+corresponding `--language=...` form. Option names, currency codes, ISO input
+dates, and period syntax remain language-independent.
+
 Run the unit tests with:
 
 ```bash
@@ -112,6 +118,9 @@ coverage are persisted in a Room database; historical cache coverage has the
 same semantics as the CLI's SQLite cache. Date fields support both ISO text
 entry and a calendar picker. Android saved state preserves the selected mode,
 inputs, completed results, and errors across activity or process recreation.
+The Android UI follows the device language and includes complete English and
+Russian resources, localized result dates and numbers, and pluralized rate
+counts.
 
 Open the repository root in Android Studio, or build from a terminal with:
 

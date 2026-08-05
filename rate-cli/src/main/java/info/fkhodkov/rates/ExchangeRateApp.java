@@ -25,38 +25,64 @@ import picocli.CommandLine.Spec;
 /** Command-line entry point and presentation layer. */
 @Command(name = "rouble-rate-calculator",
     version = "rouble-rate-calculator 1.0.0",
-    description = "Calculate average official Bank of Russia exchange rates.",
+    resourceBundle = CliMessages.BUNDLE_NAME,
     mixinStandardHelpOptions = true,
     sortOptions = false)
 public final class ExchangeRateApp implements Callable<Integer> {
   private static final Clock CLOCK = Clock.system(ZoneId.of("Europe/Moscow"));
 
   @Option(names = {"-c", "--currency"}, defaultValue = "USD", converter = CurrencyConverter.class,
-      paramLabel = "CODE", description = "ISO currency code (default: ${DEFAULT-VALUE}).")
+      paramLabel = "CODE", descriptionKey = "currency")
   private String currency;
 
   @Option(names = {"-s", "--start-date"}, paramLabel = "YYYY-MM-DD",
-      description = "Inclusive start date for an explicit interval.")
+      descriptionKey = "startDate")
   private LocalDate startDate;
 
   @Option(names = {"-e", "--end-date"}, paramLabel = "YYYY-MM-DD",
-      description = "Inclusive end date (default: yesterday in Moscow).")
+      descriptionKey = "endDate")
   private LocalDate endDate = LocalDate.now(CLOCK).minusDays(1);
 
   @Option(names = {"-p", "--periods"}, split = ",", defaultValue = "3m",
       converter = PeriodConverter.class, paramLabel = "LIST",
-      description = "Comma-separated periods using d, w, m, or y (default: ${DEFAULT-VALUE}).")
+      descriptionKey = "periods")
   private List<Period> periods;
 
   @Option(names = {"-t", "--today"},
-      description = "Show only the currently effective CBR rate.")
+      descriptionKey = "today")
   private boolean todayOnly;
+
+  @Option(names = {"-l", "--language"}, paramLabel = "en|ru", descriptionKey = "language")
+  @SuppressWarnings("unused") // Picocli populates this field after locale preselection.
+  private String language;
 
   @Spec
   private CommandSpec commandSpec;
 
+  private final CliMessages messages;
+
+  public ExchangeRateApp() {
+    this(new CliMessages(Locale.getDefault()));
+  }
+
+  ExchangeRateApp(CliMessages messages) {
+    this.messages = messages;
+  }
+
   static void main(String[] args) {
-    int exitCode = new CommandLine(new ExchangeRateApp()).execute(args);
+    Locale locale;
+    try {
+      locale = LanguageSelector.from(args);
+    } catch (CommandLine.ParameterException e) {
+      System.err.println(e.getMessage());
+      System.exit(2);
+      return;
+    }
+    Locale.setDefault(locale);
+    CliMessages messages = new CliMessages(locale);
+    int exitCode = new CommandLine(new ExchangeRateApp(messages))
+        .setResourceBundle(messages.bundle())
+        .execute(args);
     if (exitCode != 0) {
       System.exit(exitCode);
     }
@@ -75,19 +101,19 @@ public final class ExchangeRateApp implements Callable<Integer> {
       if (todayOnly) {
         if (hasStart || hasEnd || hasPeriods) {
           throw new IllegalArgumentException(
-              "--today cannot be combined with date or period options.");
+              messages.text("error.todayCombination"));
         }
         print(calculator.currentRate(currency));
       } else if (hasStart) {
         if (hasEnd && hasPeriods) {
           throw new IllegalArgumentException(
-              "--start-date, --end-date, and --periods cannot be used together.");
+              messages.text("error.intervalCombination"));
         }
         LocalDate intervalEnd;
         if (hasPeriods) {
           if (periods.size() != 1) {
             throw new IllegalArgumentException(
-                "Exactly one period is required when --start-date is used.");
+                messages.text("error.singlePeriod"));
           }
           intervalEnd = periods.getFirst().endDate(startDate);
         } else {
@@ -99,14 +125,14 @@ public final class ExchangeRateApp implements Callable<Integer> {
       }
       return 0;
     } catch (IllegalArgumentException e) {
-      System.err.println("Error: " + e.getMessage());
+      System.err.println(messages.text("error.prefix", e.getMessage()));
       return 2;
     } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
-      System.err.println("Interrupted by user");
+      System.err.println(messages.text("error.interrupted"));
       return 1;
     } catch (Exception e) {
-      System.err.println("Could not calculate rates: " + e.getMessage());
+      System.err.println(messages.text("error.calculate", e.getMessage()));
       return 1;
     }
   }
@@ -120,35 +146,34 @@ public final class ExchangeRateApp implements Callable<Integer> {
         "rouble-rate-calculator", "rates.db");
   }
 
-  private static void print(Calculation calculation) {
-    System.out.printf("Official CBR %s/RUB averages through %s%n",
-        calculation.currency(), calculation.endDate());
-    System.out.println("(arithmetic mean of published rates, RUB per 1 currency unit)");
+  private void print(Calculation calculation) {
+    System.out.println(messages.text("average.heading",
+        calculation.currency(), messages.date(calculation.endDate())));
+    System.out.println(messages.text("average.explanation"));
     for (PeriodAverage average : calculation.averages()) {
       switch (average) {
-        case NoData(Period period) -> System.out.printf(Locale.ROOT, "%6s: no data%n", period);
-        case Data(var period, var value, var observations, var firstDate, var lastDate) -> System.out.printf(
-            Locale.ROOT, "%6s: %12s  (%d published rates, %s to %s)%n",
-            period, value.toPlainString(), observations, firstDate, lastDate);
+        case NoData(Period period) -> System.out.println(
+            messages.text("average.noData", period));
+        case Data(var period, var value, var observations, var firstDate, var lastDate) ->
+            System.out.println(messages.text("average.data", period, messages.decimal(value),
+                messages.observations(observations), messages.date(firstDate),
+                messages.date(lastDate)));
       }
     }
   }
 
-  private static void print(CurrentRate rate) {
-    System.out.printf(Locale.ROOT,
-        "Official CBR %s/RUB rate effective %s: %s RUB per 1 %s%n",
-        rate.currency(), rate.effectiveDate(), rate.rublesPerUnit().stripTrailingZeros().toPlainString(),
-        rate.currency());
+  private void print(CurrentRate rate) {
+    System.out.println(messages.text("current", rate.currency(), messages.date(rate.effectiveDate()),
+        messages.decimal(rate.rublesPerUnit())));
   }
 
-  private static void print(IntervalCalculation calculation) {
-    System.out.printf(Locale.ROOT,
-        "Official CBR %s/RUB average from %s to %s: %s%n",
-        calculation.currency(), calculation.requestedStart(), calculation.requestedEnd(),
-        calculation.value().toPlainString());
-    System.out.printf(Locale.ROOT,
-        "(%d published rates, %s to %s; RUB per 1 %s)%n",
-        calculation.observations(), calculation.firstDate(), calculation.lastDate(),
-        calculation.currency());
+  private void print(IntervalCalculation calculation) {
+    System.out.println(messages.text("interval", calculation.currency(),
+        messages.date(calculation.requestedStart()), messages.date(calculation.requestedEnd()),
+        messages.decimal(calculation.value())));
+    System.out.println(messages.text("interval.details",
+        messages.observations(calculation.observations()),
+        messages.date(calculation.firstDate()), messages.date(calculation.lastDate()),
+        calculation.currency()));
   }
 }

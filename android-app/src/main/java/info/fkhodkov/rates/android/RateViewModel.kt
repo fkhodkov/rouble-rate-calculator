@@ -28,6 +28,19 @@ import kotlinx.coroutines.withContext
 
 enum class CalculationMode { PERIODS, INTERVAL, TODAY }
 
+enum class RateError {
+    INVALID_CURRENCY,
+    PERIOD_REQUIRED,
+    INVALID_PERIOD,
+    START_DATE_REQUIRED,
+    END_DATE_REQUIRED,
+    START_DATE_FORMAT,
+    END_DATE_FORMAT,
+    INTERVAL_CONFLICT,
+    SINGLE_PERIOD_REQUIRED,
+    LOAD_FAILED,
+}
+
 data class RateUiState(
     val mode: CalculationMode = CalculationMode.PERIODS,
     val currency: String = "USD",
@@ -38,7 +51,7 @@ data class RateUiState(
     val periodResults: List<AverageUi> = emptyList(),
     val intervalResult: IntervalUi? = null,
     val currentResult: CurrentRateUi? = null,
-    val error: String? = null,
+    val error: RateError? = null,
 ) : Serializable
 
 data class AverageUi(
@@ -111,13 +124,13 @@ class RateViewModel(
         val input = mutableState.value
         val currency = input.currency.trim().uppercase(Locale.ROOT)
         if (!currency.matches(Regex("[A-Z]{3}"))) {
-            showError("Currency must be a three-letter code, such as USD or EUR.")
+            showError(RateError.INVALID_CURRENCY)
             return
         }
         val request = try {
             buildRequest(input)
-        } catch (error: IllegalArgumentException) {
-            showError(error.message ?: "Invalid input.")
+        } catch (error: InputException) {
+            showError(error.error)
             return
         }
         mutableState.value = input.copy(currency = currency, loading = true).withoutResults()
@@ -127,7 +140,7 @@ class RateViewModel(
             } catch (error: Exception) {
                 mutableState.value = mutableState.value.copy(
                     loading = false,
-                    error = error.message ?: "Could not load exchange rates.",
+                    error = RateError.LOAD_FAILED,
                 )
             }
         }
@@ -136,21 +149,23 @@ class RateViewModel(
     private fun buildRequest(input: RateUiState): RateRequest = when (input.mode) {
         CalculationMode.TODAY -> TodayRequest()
         CalculationMode.PERIODS -> PeriodsRequest(
-            parseDate(input.endDate, "end date"),
+            parseDate(input.endDate, RateError.END_DATE_REQUIRED, RateError.END_DATE_FORMAT),
             parsePeriods(input.periods),
         )
         CalculationMode.INTERVAL -> {
-            val start = parseDate(input.startDate, "start date")
+            val start = parseDate(
+                input.startDate, RateError.START_DATE_REQUIRED, RateError.START_DATE_FORMAT,
+            )
             val hasEnd = input.endDate.isNotBlank()
             val hasPeriod = input.periods.isNotBlank()
-            require(!(hasEnd && hasPeriod)) {
-                "Start date, end date, and period cannot be used together."
-            }
+            if (hasEnd && hasPeriod) throw InputException(RateError.INTERVAL_CONFLICT)
             val end = when {
-                hasEnd -> parseDate(input.endDate, "end date")
+                hasEnd -> parseDate(
+                    input.endDate, RateError.END_DATE_REQUIRED, RateError.END_DATE_FORMAT,
+                )
                 hasPeriod -> {
                     val periods = parsePeriods(input.periods)
-                    require(periods.size == 1) { "Enter exactly one period with a start date." }
+                    if (periods.size != 1) throw InputException(RateError.SINGLE_PERIOD_REQUIRED)
                     periods.first().endDate(start)
                 }
                 else -> yesterday
@@ -160,16 +175,24 @@ class RateViewModel(
     }
 
     private fun parsePeriods(value: String): List<Period> {
-        require(value.isNotBlank()) { "Enter at least one period." }
-        return value.split(',').map { Period.parse(it) }
+        if (value.isBlank()) throw InputException(RateError.PERIOD_REQUIRED)
+        return try {
+            value.split(',').map { Period.parse(it) }
+        } catch (_: IllegalArgumentException) {
+            throw InputException(RateError.INVALID_PERIOD)
+        }
     }
 
-    private fun parseDate(value: String, label: String): LocalDate {
-        require(value.isNotBlank()) { "Enter a $label." }
+    private fun parseDate(
+        value: String,
+        requiredError: RateError,
+        formatError: RateError,
+    ): LocalDate {
+        if (value.isBlank()) throw InputException(requiredError)
         return try {
             LocalDate.parse(value.trim())
         } catch (_: DateTimeParseException) {
-            throw IllegalArgumentException("$label must use YYYY-MM-DD format.")
+            throw InputException(formatError)
         }
     }
 
@@ -177,8 +200,8 @@ class RateViewModel(
         mutableState.value = mutableState.value.change()
     }
 
-    private fun showError(message: String) {
-        mutableState.value = mutableState.value.copy(error = message).withoutResults()
+    private fun showError(error: RateError) {
+        mutableState.value = mutableState.value.copy(error = error).withoutResults()
     }
 
     private fun RateUiState.withoutResults() = copy(
@@ -189,6 +212,8 @@ class RateViewModel(
 
     private fun RateUiState.hasOutcome() =
         periodResults.isNotEmpty() || intervalResult != null || currentResult != null || error != null
+
+    private class InputException(val error: RateError) : IllegalArgumentException()
 
     private sealed interface RateRequest {
         fun execute(calculator: ExchangeRateCalculator, currency: String)

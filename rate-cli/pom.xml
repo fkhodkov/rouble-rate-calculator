@@ -108,6 +108,8 @@
                             <imageName>rouble-rate-calculator</imageName>
                             <buildArgs>
                                 <buildArg>-H:+AddAllCharsets</buildArg>
+                                <buildArg>-H:IncludeLocales=en,ru</buildArg>
+                                <buildArg>-H:IncludeResourceBundles=info.fkhodkov.rates.Messages</buildArg>
                                 <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
                             </buildArgs>
                         </configuration>
