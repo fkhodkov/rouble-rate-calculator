@@ -16,11 +16,12 @@
     <string name="cancel">Cancel</string>
     <string name="periods">Periods</string>
     <string name="period_optional">Period (optional)</string>
-    <string name="periods_hint">Comma-separated: 3m,7d,1w</string>
+    <string name="periods_hint">Comma-separated: 3m,7d,2w,1y</string>
     <string name="period_hint">One period, for example 3m</string>
     <string name="interval_hint">Leave end date and period empty to calculate through yesterday.</string>
     <string name="today_hint">Show the currently effective official CBR rate.</string>
     <string name="calculate">Calculate</string>
+    <string name="refresh">Refresh</string>
     <string name="loading_rates">Loading rates</string>
     <string name="no_rates">No published rates</string>
     <string name="period_range">%1$s: %2$s through %3$s</string>

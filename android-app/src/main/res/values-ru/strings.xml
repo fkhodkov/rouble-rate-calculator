@@ -16,11 +16,12 @@
     <string name="cancel">Отмена</string>
     <string name="periods">Периоды</string>
     <string name="period_optional">Период (необязательно)</string>
-    <string name="periods_hint">Через запятую: 3m,7d,1w</string>
+    <string name="periods_hint">Через запятую: 3m,7d,2w,1y</string>
     <string name="period_hint">Один период, например 3m</string>
     <string name="interval_hint">Оставьте конечную дату и период пустыми для расчёта по вчерашний день.</string>
     <string name="today_hint">Показать действующий официальный курс ЦБ РФ.</string>
     <string name="calculate">Рассчитать</string>
+    <string name="refresh">Обновить</string>
     <string name="loading_rates">Загрузка курсов</string>
     <string name="no_rates">Нет опубликованных курсов</string>
     <string name="period_range">%1$s: с %2$s по %3$s</string>

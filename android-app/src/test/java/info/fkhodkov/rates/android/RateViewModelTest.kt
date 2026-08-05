@@ -142,11 +142,30 @@ class RateViewModelTest {
         assertFalse(restored.state.value.loading)
     }
 
-    private fun createViewModel(savedState: SavedStateHandle) = RateViewModel(
+    @Test
+    fun restoresLastSuccessfulResultWithoutSavedState() {
+        val stateStore = MemoryStateStore()
+        val original = createViewModel(SavedStateHandle(), stateStore)
+        original.selectMode(CalculationMode.TODAY)
+        original.calculate()
+
+        val restored = createViewModel(SavedStateHandle(), stateStore)
+
+        assertEquals(CalculationMode.TODAY, restored.state.value.mode)
+        assertEquals("78.5", restored.state.value.currentResult?.rate)
+        assertEquals(LocalDate.of(2026, 8, 5), restored.state.value.currentResult?.effectiveDate)
+        assertFalse(restored.state.value.loading)
+    }
+
+    private fun createViewModel(
+        savedState: SavedStateHandle,
+        stateStore: RateStateStore = NoOpRateStateStore,
+    ) = RateViewModel(
         calculator = ExchangeRateCalculator(clock, { FakeStore(defaultRates()) }, FakeSource()),
         clock = clock,
         ioDispatcher = dispatcher,
         savedStateHandle = savedState,
+        stateStore = stateStore,
     )
 
     private fun defaultRates() = listOf(
@@ -187,5 +206,15 @@ class RateViewModelTest {
         ) = Unit
 
         override fun close() = Unit
+    }
+
+    private class MemoryStateStore : RateStateStore {
+        private var state: RateUiState? = null
+
+        override fun load(): RateUiState? = state
+
+        override fun save(state: RateUiState) {
+            this.state = state
+        }
     }
 }

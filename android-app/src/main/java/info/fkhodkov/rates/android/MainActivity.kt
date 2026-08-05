@@ -59,7 +59,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    RateScreen((application as RateApplication).calculator)
+                    val app = application as RateApplication
+                    RateScreen(app.calculator, app.stateStore)
                 }
             }
         }
@@ -69,7 +70,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 internal fun RateScreen(
     calculator: info.fkhodkov.rates.core.ExchangeRateCalculator,
-    rateViewModel: RateViewModel = viewModel(factory = RateViewModel.factory(calculator)),
+    stateStore: RateStateStore = NoOpRateStateStore,
+    rateViewModel: RateViewModel = viewModel(factory = RateViewModel.factory(calculator, stateStore)),
 ) {
     val state by rateViewModel.state.collectAsState()
     val loadingDescription = stringResource(R.string.loading_rates)
@@ -84,6 +86,7 @@ internal fun RateScreen(
         ) {
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
         Text(stringResource(R.string.subtitle), color = MaterialTheme.colorScheme.primary)
+        RateResult(state)
         OutlinedTextField(
             value = state.currency,
             onValueChange = rateViewModel::updateCurrency,
@@ -140,7 +143,7 @@ internal fun RateScreen(
             onClick = rateViewModel::calculate,
             enabled = !state.loading,
         ) {
-            Text(stringResource(R.string.calculate))
+            Text(stringResource(if (state.hasResult()) R.string.refresh else R.string.calculate))
         }
         when {
             state.loading -> CircularProgressIndicator(
@@ -156,6 +159,17 @@ internal fun RateScreen(
                 )
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun RateResult(state: RateUiState) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         state.periodResults.forEach { result ->
             Text(
                 stringResource(
@@ -211,9 +225,11 @@ internal fun RateScreen(
             )
             Text(stringResource(R.string.per_currency, state.currency))
         }
-        }
     }
 }
+
+private fun RateUiState.hasResult(): Boolean =
+    periodResults.isNotEmpty() || intervalResult != null || currentResult != null
 
 @Composable
 private fun CalculationMode.localizedLabel(): String =

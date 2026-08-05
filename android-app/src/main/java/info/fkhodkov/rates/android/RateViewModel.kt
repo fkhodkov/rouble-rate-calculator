@@ -80,10 +80,12 @@ class RateViewModel(
     clock: Clock = Clock.system(ZoneId.of("Europe/Moscow")),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    private val stateStore: RateStateStore = NoOpRateStateStore,
 ) : ViewModel() {
     private val yesterday = LocalDate.now(clock).minusDays(1)
     private val mutableState = MutableStateFlow(
         savedStateHandle.get<RateUiState>(STATE_KEY)?.copy(loading = false)
+            ?: stateStore.load()?.copy(loading = false, error = null)
             ?: RateUiState(endDate = yesterday.toString()),
     )
 
@@ -133,11 +135,11 @@ class RateViewModel(
             showError(error.error)
             return
         }
-        mutableState.value = input.copy(currency = currency, loading = true).withoutResults()
+        mutableState.value = input.copy(currency = currency, loading = true, error = null)
         viewModelScope.launch {
             try {
                 withContext(ioDispatcher) { request.execute(calculator, currency) }
-            } catch (error: Exception) {
+            } catch (_: Exception) {
                 mutableState.value = mutableState.value.copy(
                     loading = false,
                     error = RateError.LOAD_FAILED,
@@ -237,7 +239,7 @@ class RateViewModel(
                     )
                 }
             }
-            mutableState.value = mutableState.value.copy(loading = false, periodResults = results)
+            showResult(mutableState.value.copy(loading = false, periodResults = results))
         }
     }
 
@@ -247,38 +249,47 @@ class RateViewModel(
     ) : RateRequest {
         override fun execute(calculator: ExchangeRateCalculator, currency: String) {
             val result = calculator.calculateInterval(currency, startDate, endDate)
-            mutableState.value = mutableState.value.copy(
+            showResult(mutableState.value.copy(
                 loading = false,
                 intervalResult = IntervalUi(
                     result.requestedStart(), result.requestedEnd(),
                     result.value().stripTrailingZeros().toPlainString(), result.observations(),
                     result.firstDate(), result.lastDate(),
                 ),
-            )
+            ))
         }
     }
 
     private inner class TodayRequest : RateRequest {
         override fun execute(calculator: ExchangeRateCalculator, currency: String) {
             val result = calculator.currentRate(currency)
-            mutableState.value = mutableState.value.copy(
+            showResult(mutableState.value.copy(
                 loading = false,
                 currentResult = CurrentRateUi(
                     result.effectiveDate(),
                     result.rublesPerUnit().stripTrailingZeros().toPlainString(),
                 ),
-            )
+            ))
         }
+    }
+
+    private fun showResult(result: RateUiState) {
+        mutableState.value = result
+        stateStore.save(result)
     }
 
     companion object {
         private const val STATE_KEY = "rateUiState"
 
-        fun factory(calculator: ExchangeRateCalculator): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(
+            calculator: ExchangeRateCalculator,
+            stateStore: RateStateStore,
+        ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 RateViewModel(
                     calculator = calculator,
                     savedStateHandle = createSavedStateHandle(),
+                    stateStore = stateStore,
                 )
             }
         }

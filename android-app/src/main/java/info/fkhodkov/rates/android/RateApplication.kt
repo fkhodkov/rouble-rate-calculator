@@ -13,6 +13,8 @@ import java.time.ZoneId
 class RateApplication : Application() {
     lateinit var calculator: ExchangeRateCalculator
         private set
+    lateinit var stateStore: RateStateStore
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -26,5 +28,6 @@ class RateApplication : Application() {
             { RoomRateStore(database) },
             CbrRateSource(OkHttpCbrClient()),
         )
+        stateStore = PreferencesRateStateStore(applicationContext)
     }
 }

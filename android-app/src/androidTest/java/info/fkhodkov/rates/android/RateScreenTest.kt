@@ -73,6 +73,7 @@ class RateScreenTest {
         compose.onNodeWithText("Effective Aug 5, 2026").assertIsDisplayed()
         compose.onNodeWithText("78.5 RUB").assertIsDisplayed()
         compose.onNodeWithText("per 1 USD").assertIsDisplayed()
+        compose.onNodeWithText("Refresh").assertIsDisplayed()
     }
 
     @Test
@@ -85,7 +86,7 @@ class RateScreenTest {
         compose.onAllNodesWithText("Периоды").assertCountEquals(2)
         compose.onNodeWithText("Интервал").assertIsDisplayed()
         compose.onNodeWithText("Сегодня").assertIsDisplayed()
-        compose.onNodeWithText("Рассчитать").assertIsDisplayed()
+        compose.onNodeWithText("Обновить").assertIsDisplayed()
     }
 
     private fun show(viewModel: RateViewModel, locale: Locale = Locale.ENGLISH) {
@@ -100,7 +101,7 @@ class RateScreenTest {
                 LocalConfiguration provides configuration,
             ) {
                 MaterialTheme {
-                    RateScreen(calculator(), viewModel)
+                    RateScreen(calculator(), rateViewModel = viewModel)
                 }
             }
         }

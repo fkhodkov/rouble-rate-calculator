@@ -116,8 +116,10 @@ and the currently effective official rate. Dates use `YYYY-MM-DD`. The defaults
 are USD and three months through yesterday. Normalized rates and downloaded
 coverage are persisted in a Room database; historical cache coverage has the
 same semantics as the CLI's SQLite cache. Date fields support both ISO text
-entry and a calendar picker. Android saved state preserves the selected mode,
-inputs, completed results, and errors across activity or process recreation.
+entry and a calendar picker. The last successful inputs and result persist
+between launches, allowing the app to reopen directly on the previous result
+and refresh it with one tap. Android saved state also preserves in-progress UI
+state across activity or process recreation.
 The Android UI follows the device language and includes complete English and
 Russian resources, localized result dates and numbers, and pluralized rate
 counts.
