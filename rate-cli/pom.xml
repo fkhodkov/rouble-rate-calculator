@@ -13,6 +13,11 @@
     <dependencies>
         <dependency>
             <groupId>dev.fedor</groupId>
+            <artifactId>rate-cbr</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.fedor</groupId>
             <artifactId>rate-core</artifactId>
             <version>${project.version}</version>
         </dependency>

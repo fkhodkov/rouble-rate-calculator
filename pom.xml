@@ -10,6 +10,7 @@
 
     <modules>
         <module>rate-core</module>
+        <module>rate-cbr</module>
         <module>rate-cli</module>
     </modules>
 

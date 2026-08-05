@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "rouble-rate-calculator"
 include(":android-app")
 include(":rate-core")
+include(":rate-cbr")

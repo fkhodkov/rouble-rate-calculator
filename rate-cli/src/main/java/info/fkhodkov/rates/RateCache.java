@@ -1,6 +1,7 @@
 package info.fkhodkov.rates;
 
 import info.fkhodkov.rates.core.DateRange;
+import info.fkhodkov.rates.core.CoverageRanges;
 import info.fkhodkov.rates.core.ExchangeRateStore;
 import info.fkhodkov.rates.core.Rate;
 import java.io.IOException;
@@ -15,7 +16,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /** Persistent SQLite storage for rates and date ranges already fetched from CBR. */
@@ -54,35 +54,7 @@ final class RateCache implements ExchangeRateStore {
   public List<DateRange> missingRanges(
       String currency, LocalDate requestedFrom, LocalDate requestedTo, LocalDate today)
       throws SQLException {
-    List<DateRange> missing = new ArrayList<>();
-    LocalDate historicalTo = requestedTo.isBefore(today) ? requestedTo : today.minusDays(1);
-    if (!historicalTo.isBefore(requestedFrom)) {
-      subtractCoverage(currency, requestedFrom, historicalTo, missing);
-    }
-    if (!requestedTo.isBefore(today)) {
-      missing.add(new DateRange(requestedFrom.isAfter(today) ? requestedFrom : today, requestedTo));
-    }
-    return List.copyOf(missing);
-  }
-
-  private void subtractCoverage(
-      String currency, LocalDate from, LocalDate to, List<DateRange> missing) throws SQLException {
-    LocalDate cursor = from;
-    for (DateRange covered : coverage(currency)) {
-      if (covered.to().isBefore(cursor) || covered.from().isAfter(to)) {
-        continue;
-      }
-      if (covered.from().isAfter(cursor)) {
-        missing.add(new DateRange(cursor, covered.from().minusDays(1)));
-      }
-      if (!covered.to().isBefore(cursor)) {
-        cursor = covered.to().plusDays(1);
-      }
-      if (cursor.isAfter(to)) {
-        return;
-      }
-    }
-    missing.add(new DateRange(cursor, to));
+    return CoverageRanges.missing(requestedFrom, requestedTo, today, coverage(currency));
   }
 
   @Override
@@ -157,21 +129,7 @@ final class RateCache implements ExchangeRateStore {
   private void replaceCoverage(String currency, DateRange addition) throws SQLException {
     List<DateRange> all = new ArrayList<>(coverage(currency));
     all.add(addition);
-    all.sort(Comparator.comparing(DateRange::from));
-    List<DateRange> merged = new ArrayList<>();
-    for (DateRange range : all) {
-      if (merged.isEmpty()) {
-        merged.add(range);
-        continue;
-      }
-      DateRange previous = merged.getLast();
-      if (!range.from().isAfter(previous.to().plusDays(1))) {
-        LocalDate end = range.to().isAfter(previous.to()) ? range.to() : previous.to();
-        merged.set(merged.size() - 1, new DateRange(previous.from(), end));
-      } else {
-        merged.add(range);
-      }
-    }
+    List<DateRange> merged = CoverageRanges.merge(all);
     try (PreparedStatement delete = connection.prepareStatement(
         "DELETE FROM coverage WHERE currency=?")) {
       delete.setString(1, currency);

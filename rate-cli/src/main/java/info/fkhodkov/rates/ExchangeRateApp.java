@@ -1,5 +1,6 @@
 package info.fkhodkov.rates;
 
+import info.fkhodkov.rates.cbr.CbrRateSource;
 import info.fkhodkov.rates.core.Calculation;
 import info.fkhodkov.rates.core.CurrentRate;
 import info.fkhodkov.rates.core.ExchangeRateCalculator;

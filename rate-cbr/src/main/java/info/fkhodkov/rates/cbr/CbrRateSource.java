@@ -1,4 +1,4 @@
-package info.fkhodkov.rates;
+package info.fkhodkov.rates.cbr;
 
 import info.fkhodkov.rates.core.CurrentRate;
 import info.fkhodkov.rates.core.ExchangeRateSource;
@@ -21,12 +21,12 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /** Converts raw CBR XML responses into the platform-neutral rate model. */
-final class CbrRateSource implements ExchangeRateSource {
+public final class CbrRateSource implements ExchangeRateSource {
   private static final DateTimeFormatter CBR_RECORD_DATE = DateTimeFormatter.ofPattern("dd.MM.uuuu");
 
   private final CbrClient client;
 
-  CbrRateSource(CbrClient client) {
+  public CbrRateSource(CbrClient client) {
     this.client = client;
   }
 
@@ -76,14 +76,42 @@ final class CbrRateSource implements ExchangeRateSource {
   private static Document parseXml(InputStream xml) throws IOException {
     try {
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-      factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-      factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-      factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-      factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-      return factory.newDocumentBuilder().parse(xml);
+      setFeatureIfSupported(factory, XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      setFeatureIfSupported(
+          factory, "http://apache.org/xml/features/disallow-doctype-decl", true);
+      setFeatureIfSupported(
+          factory, "http://xml.org/sax/features/external-general-entities", false);
+      setFeatureIfSupported(
+          factory, "http://xml.org/sax/features/external-parameter-entities", false);
+      factory.setExpandEntityReferences(false);
+      disableExternalAccess(factory, XMLConstants.ACCESS_EXTERNAL_DTD);
+      disableExternalAccess(factory, XMLConstants.ACCESS_EXTERNAL_SCHEMA);
+      var builder = factory.newDocumentBuilder();
+      builder.setEntityResolver((publicId, systemId) -> {
+        throw new SAXException("External entities are not allowed in CBR XML");
+      });
+      return builder.parse(xml);
     } catch (ParserConfigurationException | SAXException e) {
       throw new IOException("Invalid CBR XML response", e);
+    }
+  }
+
+  private static void setFeatureIfSupported(
+      DocumentBuilderFactory factory, String feature, boolean value) {
+    try {
+      factory.setFeature(feature, value);
+    } catch (ParserConfigurationException ignored) {
+      // Android and desktop JAXP providers support different optional features.
+      // External resolution is also blocked on the configured DocumentBuilder.
+    }
+  }
+
+  private static void disableExternalAccess(DocumentBuilderFactory factory, String attribute) {
+    try {
+      factory.setAttribute(attribute, "");
+    } catch (IllegalArgumentException ignored) {
+      // Some Android XML providers do not implement these JAXP attributes. The
+      // parser features above still reject doctypes and external entities.
     }
   }
 

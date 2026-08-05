@@ -18,9 +18,24 @@ future dates remain refreshable.
 
 ## Requirements
 
-- Java 25 or newer
-- Maven 3.8 or newer
+- CLI: JDK 25 or newer and Maven 3.8 or newer
+- Android: JDK 17, Android SDK 34, and Android Build Tools 35.0.0
 - Internet access to `www.cbr.ru`
+
+The Maven CLI and Android builds currently require different active JDKs. The
+CLI is compiled with Java 25. The Android build uses Gradle 8.9 and AGP 8.7,
+whose recommended JDK is 17. Gradle 8.9 supports running on Java 17 through 22,
+but this project is tested with Java 17; it cannot run on Java 25.
+
+Set `JAVA_HOME` per command, or switch JDKs with your preferred version manager:
+
+```bash
+JAVA_HOME=/path/to/jdk-25 mvn test
+JAVA_HOME=/path/to/jdk-17 ./gradlew test assembleDebug
+```
+
+In Android Studio, set the Gradle JDK to 17 under the Gradle settings. This is
+independent of the JDK selected in a terminal for Maven or GraalVM.
 
 ## Build and run
 
@@ -86,10 +101,11 @@ Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 
 ## Android app
 
-The initial Android application lives in `android-app` and consumes the same
-`rate-core` sources through the Gradle multi-project build. It currently shows a
-Compose scaffold whose ViewModel uses the shared period logic; CBR networking
-and Room persistence are intentionally deferred to the next phase.
+The Android application lives in `android-app` and consumes the same `rate-core`
+and `rate-cbr` sources through the Gradle multi-project build. Its Compose screen
+loads the default three-month USD average from CBR using OkHttp and persists
+normalized rates and downloaded coverage in a Room database. Historical cache
+coverage has the same semantics as the CLI's SQLite cache.
 
 Open the repository root in Android Studio, or build from a terminal with:
 
@@ -106,6 +122,8 @@ uses Android SDK 34, Build Tools 35.0.0, Java 17, and an Android API 26 minimum.
 - `rate-core` is a standalone Java 17, JDK-only library containing the data model,
   calculations, use cases, and the `ExchangeRateSource` and `ExchangeRateStore`
   contracts. It is intended to be shared with Android.
-- `rate-cli` contains Picocli presentation, CBR HTTP/XML adapters, the SQLite
-  store, and GraalVM native-image configuration.
-- `android-app` contains the Kotlin, Jetpack Compose, and ViewModel Android UI.
+- `rate-cbr` is a Java 17 library containing the shared CBR XML parser and its raw
+  transport interface.
+- `rate-cli` contains Picocli presentation, Java HTTP, the SQLite store, and
+  GraalVM native-image configuration.
+- `android-app` contains Kotlin/Compose UI, OkHttp transport, and Room storage.

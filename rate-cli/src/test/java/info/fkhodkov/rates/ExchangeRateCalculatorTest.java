@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import info.fkhodkov.rates.core.Calculation;
+import info.fkhodkov.rates.cbr.CbrRateSource;
 import info.fkhodkov.rates.core.CurrentRate;
 import info.fkhodkov.rates.core.DateRange;
 import info.fkhodkov.rates.core.ExchangeRateCalculator;
