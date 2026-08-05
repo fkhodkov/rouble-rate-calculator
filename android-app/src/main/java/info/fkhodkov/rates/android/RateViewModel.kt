@@ -1,11 +1,16 @@
 package info.fkhodkov.rates.android
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import info.fkhodkov.rates.core.ExchangeRateCalculator
 import info.fkhodkov.rates.core.Period
 import info.fkhodkov.rates.core.PeriodAverage
+import java.io.Serializable
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -16,6 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -32,7 +39,7 @@ data class RateUiState(
     val intervalResult: IntervalUi? = null,
     val currentResult: CurrentRateUi? = null,
     val error: String? = null,
-)
+) : Serializable
 
 data class AverageUi(
     val period: String,
@@ -42,7 +49,7 @@ data class AverageUi(
     val observations: Int = 0,
     val firstDate: LocalDate? = null,
     val lastDate: LocalDate? = null,
-)
+) : Serializable
 
 data class IntervalUi(
     val startDate: LocalDate,
@@ -51,22 +58,27 @@ data class IntervalUi(
     val observations: Int,
     val firstDate: LocalDate,
     val lastDate: LocalDate,
-)
+) : Serializable
 
-data class CurrentRateUi(val effectiveDate: LocalDate, val rate: String)
+data class CurrentRateUi(val effectiveDate: LocalDate, val rate: String) : Serializable
 
 class RateViewModel(
     private val calculator: ExchangeRateCalculator,
     clock: Clock = Clock.system(ZoneId.of("Europe/Moscow")),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val yesterday = LocalDate.now(clock).minusDays(1)
-    private val mutableState = MutableStateFlow(RateUiState(endDate = yesterday.toString()))
+    private val mutableState = MutableStateFlow(
+        savedStateHandle.get<RateUiState>(STATE_KEY)?.copy(loading = false)
+            ?: RateUiState(endDate = yesterday.toString()),
+    )
 
     val state: StateFlow<RateUiState> = mutableState.asStateFlow()
 
     init {
-        calculate()
+        mutableState.onEach { savedStateHandle[STATE_KEY] = it }.launchIn(viewModelScope)
+        if (!mutableState.value.hasOutcome()) calculate()
     }
 
     fun selectMode(mode: CalculationMode) {
@@ -175,6 +187,9 @@ class RateViewModel(
         currentResult = null,
     )
 
+    private fun RateUiState.hasOutcome() =
+        periodResults.isNotEmpty() || intervalResult != null || currentResult != null || error != null
+
     private sealed interface RateRequest {
         fun execute(calculator: ExchangeRateCalculator, currency: String)
     }
@@ -232,11 +247,15 @@ class RateViewModel(
     }
 
     companion object {
-        fun factory(calculator: ExchangeRateCalculator): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                    RateViewModel(calculator) as T
+        private const val STATE_KEY = "rateUiState"
+
+        fun factory(calculator: ExchangeRateCalculator): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                RateViewModel(
+                    calculator = calculator,
+                    savedStateHandle = createSavedStateHandle(),
+                )
             }
+        }
     }
 }

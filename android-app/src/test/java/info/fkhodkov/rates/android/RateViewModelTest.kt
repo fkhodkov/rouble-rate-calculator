@@ -1,5 +1,6 @@
 package info.fkhodkov.rates.android
 
+import androidx.lifecycle.SavedStateHandle
 import info.fkhodkov.rates.core.CurrentRate
 import info.fkhodkov.rates.core.DateRange
 import info.fkhodkov.rates.core.ExchangeRateCalculator
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -121,6 +123,36 @@ class RateViewModelTest {
         assertEquals("end date must use YYYY-MM-DD format.", viewModel.state.value.error)
         assertNull(viewModel.state.value.intervalResult)
     }
+
+    @Test
+    fun restoresInputsAndCompletedResult() {
+        val savedState = SavedStateHandle()
+        val original = createViewModel(savedState)
+        original.selectMode(CalculationMode.INTERVAL)
+        original.updateStartDate("2026-08-01")
+        original.updateEndDate("2026-08-04")
+        original.calculate()
+
+        val restored = createViewModel(savedState)
+
+        assertEquals(CalculationMode.INTERVAL, restored.state.value.mode)
+        assertEquals("2026-08-01", restored.state.value.startDate)
+        assertEquals("2026-08-04", restored.state.value.endDate)
+        assertEquals("76", restored.state.value.intervalResult?.average)
+        assertFalse(restored.state.value.loading)
+    }
+
+    private fun createViewModel(savedState: SavedStateHandle) = RateViewModel(
+        calculator = ExchangeRateCalculator(clock, { FakeStore(defaultRates()) }, FakeSource()),
+        clock = clock,
+        ioDispatcher = dispatcher,
+        savedStateHandle = savedState,
+    )
+
+    private fun defaultRates() = listOf(
+        Rate(LocalDate.of(2026, 8, 1), BigDecimal("75.0")),
+        Rate(LocalDate.of(2026, 8, 4), BigDecimal("77.0")),
+    )
 
     private class FakeSource : ExchangeRateSource {
         override fun currentRate(currency: String) = CurrentRate(

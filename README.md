@@ -109,7 +109,9 @@ start/end interval, a start date plus one period, a start date through yesterday
 and the currently effective official rate. Dates use `YYYY-MM-DD`. The defaults
 are USD and three months through yesterday. Normalized rates and downloaded
 coverage are persisted in a Room database; historical cache coverage has the
-same semantics as the CLI's SQLite cache.
+same semantics as the CLI's SQLite cache. Date fields support both ISO text
+entry and a calendar picker. Android saved state preserves the selected mode,
+inputs, completed results, and errors across activity or process recreation.
 
 Open the repository root in Android Studio, or build from a terminal with:
 
