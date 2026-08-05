@@ -46,7 +46,7 @@ jobs:
         run: |
           ./rate-cli/target/rouble-rate-calculator --language en --help
           ./rate-cli/target/rouble-rate-calculator --language ru --help | grep 'Расчёт среднего'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: rouble-rate-calculator-linux-x86_64
           path: rate-cli/target/rouble-rate-calculator
@@ -64,7 +64,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Test and assemble Android app
         run: ./gradlew --no-daemon test assembleDebug assembleDebugAndroidTest
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: android-debug-apk
           path: android-app/build/outputs/apk/debug/android-app-debug.apk
