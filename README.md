@@ -1,5 +1,7 @@
 # Rouble rate calculator
 
+[![CI](https://github.com/fkhodkov/rouble-rate-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/fkhodkov/rouble-rate-calculator/actions/workflows/ci.yml)
+
 A self-contained Java command-line program that downloads official exchange-rate
 history from the Bank of Russia and calculates arithmetic averages for requested
 day, week, month or year periods.
@@ -136,6 +138,15 @@ tests with:
 ```bash
 ./gradlew connectedDebugAndroidTest
 ```
+
+## Continuous integration
+
+The GitHub Actions workflow runs the CLI tests with JDK 25, builds and
+smoke-tests the GraalVM native executable in English and Russian, and runs the
+Android unit tests and debug builds with JDK 17. Successful runs publish the
+Linux native executable and debug APK as workflow artifacts. Device and
+emulator instrumentation tests remain part of the local verification command
+shown above.
 
 The debug APK is written to
 `android-app/build/outputs/apk/debug/android-app-debug.apk`. The current scaffold
