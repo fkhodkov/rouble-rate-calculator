@@ -176,14 +176,14 @@ class RateViewModel(
     )
 
     private sealed interface RateRequest {
-        suspend fun execute(calculator: ExchangeRateCalculator, currency: String)
+        fun execute(calculator: ExchangeRateCalculator, currency: String)
     }
 
     private inner class PeriodsRequest(
         private val endDate: LocalDate,
         private val periods: List<Period>,
     ) : RateRequest {
-        override suspend fun execute(calculator: ExchangeRateCalculator, currency: String) {
+        override fun execute(calculator: ExchangeRateCalculator, currency: String) {
             val calculation = calculator.calculate(currency, endDate, periods)
             val results = periods.zip(calculation.averages()).map { (period, average) ->
                 when (average) {
@@ -205,7 +205,7 @@ class RateViewModel(
         private val startDate: LocalDate,
         private val endDate: LocalDate,
     ) : RateRequest {
-        override suspend fun execute(calculator: ExchangeRateCalculator, currency: String) {
+        override fun execute(calculator: ExchangeRateCalculator, currency: String) {
             val result = calculator.calculateInterval(currency, startDate, endDate)
             mutableState.value = mutableState.value.copy(
                 loading = false,
@@ -219,7 +219,7 @@ class RateViewModel(
     }
 
     private inner class TodayRequest : RateRequest {
-        override suspend fun execute(calculator: ExchangeRateCalculator, currency: String) {
+        override fun execute(calculator: ExchangeRateCalculator, currency: String) {
             val result = calculator.currentRate(currency)
             mutableState.value = mutableState.value.copy(
                 loading = false,

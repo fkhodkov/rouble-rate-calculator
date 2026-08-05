@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun RateScreen(
+internal fun RateScreen(
     calculator: info.fkhodkov.rates.core.ExchangeRateCalculator,
     rateViewModel: RateViewModel = viewModel(factory = RateViewModel.factory(calculator)),
 ) {

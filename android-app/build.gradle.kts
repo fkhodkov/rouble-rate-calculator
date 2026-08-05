@@ -18,6 +18,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -43,6 +44,12 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.room:room-testing:2.8.4")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
 
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.compose.material3:material3")
@@ -55,6 +62,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.3.0")
     kapt("androidx.room:room-compiler:2.8.4")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

@@ -87,6 +87,41 @@ class RateViewModelTest {
         )
     }
 
+    @Test
+    fun calculatesStartDateThroughYesterday() {
+        viewModel.selectMode(CalculationMode.INTERVAL)
+        viewModel.updateStartDate("2026-08-01")
+
+        viewModel.calculate()
+
+        val result = viewModel.state.value.intervalResult
+        assertEquals(LocalDate.of(2026, 8, 4), result?.endDate)
+        assertEquals("76", result?.average)
+    }
+
+    @Test
+    fun calculatesStartDatePlusOnePeriod() {
+        viewModel.selectMode(CalculationMode.INTERVAL)
+        viewModel.updateStartDate("2026-08-01")
+        viewModel.updatePeriods("1w")
+
+        viewModel.calculate()
+
+        val result = viewModel.state.value.intervalResult
+        assertEquals(LocalDate.of(2026, 8, 8), result?.endDate)
+        assertEquals(2, result?.observations)
+    }
+
+    @Test
+    fun rejectsMalformedDate() {
+        viewModel.updateEndDate("08/04/2026")
+
+        viewModel.calculate()
+
+        assertEquals("end date must use YYYY-MM-DD format.", viewModel.state.value.error)
+        assertNull(viewModel.state.value.intervalResult)
+    }
+
     private class FakeSource : ExchangeRateSource {
         override fun currentRate(currency: String) = CurrentRate(
             currency,

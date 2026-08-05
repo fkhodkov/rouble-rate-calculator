@@ -117,6 +117,13 @@ Open the repository root in Android Studio, or build from a terminal with:
 ./gradlew test assembleDebug
 ```
 
+With an emulator or device connected, run the Room and Compose instrumentation
+tests with:
+
+```bash
+./gradlew connectedDebugAndroidTest
+```
+
 The debug APK is written to
 `android-app/build/outputs/apk/debug/android-app-debug.apk`. The current scaffold
 uses Android SDK 34, Build Tools 35.0.0, Java 17, and an Android API 26 minimum.
