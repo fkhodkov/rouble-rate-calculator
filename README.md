@@ -104,10 +104,12 @@ Data source: the Bank of Russia `XML_daily.asp` and `XML_dynamic.asp` endpoints.
 The Android application lives in `android-app` and consumes the same `rate-core`
 and `rate-cbr` sources through the Gradle multi-project build. Its Compose screen
 accepts a three-letter currency and one or more comma-separated periods, then
-loads their averages from CBR using OkHttp. The defaults are USD and three
-months. Normalized rates and downloaded coverage are persisted in a Room
-database; historical cache coverage has the same semantics as the CLI's SQLite
-cache.
+loads their averages from CBR using OkHttp. It also supports an explicit
+start/end interval, a start date plus one period, a start date through yesterday,
+and the currently effective official rate. Dates use `YYYY-MM-DD`. The defaults
+are USD and three months through yesterday. Normalized rates and downloaded
+coverage are persisted in a Room database; historical cache coverage has the
+same semantics as the CLI's SQLite cache.
 
 Open the repository root in Android Studio, or build from a terminal with:
 
