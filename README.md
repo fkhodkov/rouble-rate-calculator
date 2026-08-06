@@ -143,14 +143,43 @@ tests with:
 
 The GitHub Actions workflow runs the CLI tests with JDK 25, builds and
 smoke-tests the GraalVM native executable in English and Russian, and runs the
-Android unit tests and debug builds with JDK 17. Successful runs publish the
-Linux native executable and debug APK as workflow artifacts. Device and
-emulator instrumentation tests remain part of the local verification command
-shown above.
+Android unit tests plus debug and optimized release builds with JDK 17.
+Successful runs publish the Linux native executable, debug APK, and unsigned
+release AAB as workflow artifacts. Device and emulator instrumentation tests
+remain part of the local verification command shown above.
 
 The debug APK is written to
 `android-app/build/outputs/apk/debug/android-app-debug.apk`. The current scaffold
 uses Android SDK 34, Build Tools 35.0.0, Java 17, and an Android API 26 minimum.
+
+### Android release bundle
+
+Build an optimized, resource-shrunk Android App Bundle with JDK 17:
+
+```bash
+./gradlew :android-app:bundleRelease
+```
+
+Without signing variables this produces an unsigned bundle for verification at
+`android-app/build/outputs/bundle/release/android-app-release.aab`. CI builds
+and publishes this unsigned bundle as an artifact.
+
+For a distributable bundle, first create and securely back up an upload
+keystore using Android Studio's **Build > Generate Signed Bundle/APK** flow.
+Then provide all four signing values as environment variables:
+
+```bash
+export ROUBLE_RATE_KEYSTORE=/secure/path/rouble-rate-upload.jks
+export ROUBLE_RATE_STORE_PASSWORD='...'
+export ROUBLE_RATE_KEY_ALIAS='rouble-rate-upload'
+export ROUBLE_RATE_KEY_PASSWORD='...'
+./gradlew :android-app:bundleRelease
+```
+
+The build fails when only some signing variables are present, preventing an
+accidentally misconfigured release. Keystores and `keystore.properties` are
+ignored by Git and must never be committed. For Google Play distribution, use
+this as the upload key and enroll the application in Play App Signing.
 
 ## Modules
 

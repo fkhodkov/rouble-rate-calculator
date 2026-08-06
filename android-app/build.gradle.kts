@@ -1,5 +1,16 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+val releaseSigningVariables = mapOf(
+    "storeFile" to providers.environmentVariable("ROUBLE_RATE_KEYSTORE").orNull,
+    "storePassword" to providers.environmentVariable("ROUBLE_RATE_STORE_PASSWORD").orNull,
+    "keyAlias" to providers.environmentVariable("ROUBLE_RATE_KEY_ALIAS").orNull,
+    "keyPassword" to providers.environmentVariable("ROUBLE_RATE_KEY_PASSWORD").orNull,
+)
+val hasReleaseSigning = releaseSigningVariables.values.all { !it.isNullOrBlank() }
+require(releaseSigningVariables.values.none { !it.isNullOrBlank() } || hasReleaseSigning) {
+    "Release signing requires all ROUBLE_RATE_* signing environment variables"
+}
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,6 +30,29 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseSigningVariables.getValue("storeFile")!!)
+                storePassword = releaseSigningVariables.getValue("storePassword")
+                keyAlias = releaseSigningVariables.getValue("keyAlias")
+                keyPassword = releaseSigningVariables.getValue("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 
     compileOptions {

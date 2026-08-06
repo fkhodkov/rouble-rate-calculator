@@ -63,9 +63,14 @@ jobs:
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v6
       - name: Test and assemble Android app
-        run: ./gradlew --no-daemon test assembleDebug assembleDebugAndroidTest
+        run: ./gradlew --no-daemon test assembleDebug assembleDebugAndroidTest bundleRelease
       - uses: actions/upload-artifact@v6
         with:
           name: android-debug-apk
           path: android-app/build/outputs/apk/debug/android-app-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        with:
+          name: android-release-aab-unsigned
+          path: android-app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
