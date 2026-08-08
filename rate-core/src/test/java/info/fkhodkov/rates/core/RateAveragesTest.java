@@ -26,6 +26,6 @@ class RateAveragesTest {
     Calculation result = RateAverages.forPeriods(
         "USD", LocalDate.of(2026, Month.JANUARY, 31), List.of(new Period(1, PeriodUnit.MONTH)), List.of());
 
-    assertInstanceOf(PeriodAverage.NoData.class, result.averages().get(0));
+    assertInstanceOf(PeriodAverage.NoData.class, result.averages().getFirst());
   }
 }

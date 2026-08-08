@@ -24,6 +24,8 @@ public final class CoverageRanges {
     return List.copyOf(missing);
   }
 
+  // SequencedCollection methods require Android API 35; this library supports API 26.
+  @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
   public static List<DateRange> merge(List<DateRange> ranges) {
     List<DateRange> sorted = new ArrayList<>(ranges);
     sorted.sort(Comparator.comparing(DateRange::from));

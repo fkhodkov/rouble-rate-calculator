@@ -11,6 +11,8 @@ public final class RateAverages {
   private RateAverages() {
   }
 
+  // SequencedCollection methods require Android API 35; this library supports API 26.
+  @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
   public static Calculation forPeriods(
       String currency, LocalDate endDate, List<Period> periods, List<Rate> rates) {
     List<PeriodAverage> averages = new ArrayList<>();
@@ -30,6 +32,8 @@ public final class RateAverages {
     return new Calculation(currency, endDate, List.copyOf(averages));
   }
 
+  // SequencedCollection methods require Android API 35; this library supports API 26.
+  @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
   public static IntervalCalculation forInterval(
       String currency, LocalDate startDate, LocalDate endDate, List<Rate> rates) {
     if (endDate.isBefore(startDate)) {

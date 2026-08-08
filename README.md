@@ -184,10 +184,10 @@ this as the upload key and enroll the application in Play App Signing.
 
 ## Modules
 
-- `rate-core` is a standalone Java 17, JDK-only library containing the data model,
+- `rate-core` is a standalone Java 21, JDK-only library containing the data model,
   calculations, use cases, and the `ExchangeRateSource` and `ExchangeRateStore`
   contracts. It is intended to be shared with Android.
-- `rate-cbr` is a Java 17 library containing the shared CBR XML parser and its raw
+- `rate-cbr` is a Java 21 library containing the shared CBR XML parser and its raw
   transport interface.
 - `rate-cli` contains Picocli presentation, Java HTTP, the SQLite store, and
   GraalVM native-image configuration.

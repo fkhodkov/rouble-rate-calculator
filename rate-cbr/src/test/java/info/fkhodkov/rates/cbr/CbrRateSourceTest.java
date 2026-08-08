@@ -24,7 +24,7 @@ class CbrRateSourceTest {
         "JPY", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 3));
 
     assertEquals(new BigDecimal("0.5325000000"), current.rublesPerUnit());
-    assertEquals(new BigDecimal("0.5400000000"), historical.get(0).rublesPerUnit());
+    assertEquals(new BigDecimal("0.5400000000"), historical.getFirst().rublesPerUnit());
     assertTrue(client.daily.closed);
     assertTrue(client.historical.closed);
   }

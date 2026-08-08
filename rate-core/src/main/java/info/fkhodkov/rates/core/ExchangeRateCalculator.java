@@ -44,6 +44,8 @@ public final class ExchangeRateCalculator {
     return RateAverages.forInterval(currency, startDate, endDate, rates);
   }
 
+  // SequencedCollection methods require Android API 35; this library supports API 26.
+  @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
   private List<Rate> loadRates(String currency, LocalDate from, LocalDate to) throws Exception {
     try (ExchangeRateStore store = storeFactory.open()) {
       LocalDate today = LocalDate.now(clock);
