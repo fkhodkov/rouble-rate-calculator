@@ -20,13 +20,13 @@ plugins {
 
 android {
     namespace = "info.fkhodkov.rates.android"
-    compileSdk = 34
-    buildToolsVersion = "35.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "info.fkhodkov.rates.android"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

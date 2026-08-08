@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -75,7 +76,10 @@ internal fun RateScreen(
 ) {
     val state by rateViewModel.state.collectAsState()
     val loadingDescription = stringResource(R.string.loading_rates)
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

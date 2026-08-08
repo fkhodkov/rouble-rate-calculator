@@ -1,6 +1,7 @@
 package info.fkhodkov.rates.android
 
 import android.content.Context
+import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -13,7 +14,7 @@ class PreferencesRateStateStore(context: Context) : RateStateStore {
     }.getOrNull()
 
     override fun save(state: RateUiState) {
-        preferences.edit().putString(STATE_KEY, encode(state)).apply()
+        preferences.edit { putString(STATE_KEY, encode(state)) }
     }
 
     private fun encode(state: RateUiState) = JSONObject().apply {

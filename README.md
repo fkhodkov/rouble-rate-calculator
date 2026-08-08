@@ -21,13 +21,13 @@ future dates remain refreshable.
 ## Requirements
 
 - CLI: JDK 25 or newer and Maven 3.8 or newer
-- Android: JDK 17, Android SDK 34, and Android Build Tools 35.0.0
+- Android: JDK 17, Android SDK 36, and Android Build Tools 36.0.0
 - Internet access to `www.cbr.ru`
 
 The Maven CLI and Android builds currently require different active JDKs. The
-CLI is compiled with Java 25. The Android build uses Gradle 8.9 and AGP 8.7,
-whose recommended JDK is 17. Gradle 8.9 supports running on Java 17 through 22,
-but this project is tested with Java 17; it cannot run on Java 25.
+CLI is compiled with Java 25. The Android build uses Gradle 8.13 and AGP 8.13,
+whose required JDK is 17. This project tests the Android build with Java 17; it
+cannot run on Java 25.
 
 Set `JAVA_HOME` per command, or switch JDKs with your preferred version manager:
 
@@ -149,8 +149,9 @@ release AAB as workflow artifacts. Device and emulator instrumentation tests
 remain part of the local verification command shown above.
 
 The debug APK is written to
-`android-app/build/outputs/apk/debug/android-app-debug.apk`. The current scaffold
-uses Android SDK 34, Build Tools 35.0.0, Java 17, and an Android API 26 minimum.
+`android-app/build/outputs/apk/debug/android-app-debug.apk`. The app compiles
+and targets Android 16/API 36, uses Build Tools 36.0.0 and Java 17, and retains
+Android 8/API 26 as its minimum supported version.
 
 ### Android release bundle
 
