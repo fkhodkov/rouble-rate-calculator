@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import info.fkhodkov.rates.core.CurrentRate
 import info.fkhodkov.rates.core.DateRange
@@ -53,9 +54,11 @@ class RateScreenTest {
             .performTextReplacement("2026-08-04")
         compose.onNode(hasSetTextAction() and hasText("Period (optional)"))
             .performTextReplacement("1w")
-        compose.onNodeWithText("Calculate").performClick()
+        compose.onNodeWithText("Calculate").performScrollTo().performClick()
 
+        compose.waitUntil { viewModel.state.value.error == RateError.INTERVAL_CONFLICT }
         compose.onNodeWithText("Start date, end date, and period cannot be used together.")
+            .performScrollTo()
             .assertIsDisplayed()
         assertFalse(viewModel.state.value.loading)
     }

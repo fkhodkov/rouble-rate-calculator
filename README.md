@@ -21,22 +21,22 @@ future dates remain refreshable.
 ## Requirements
 
 - CLI: JDK 25 or newer and Maven 3.8 or newer
-- Android: JDK 17, Android SDK 36, and Android Build Tools 36.0.0
+- Android: JDK 21, Android SDK 36, and Android Build Tools 36.0.0
 - Internet access to `www.cbr.ru`
 
 The Maven CLI and Android builds currently require different active JDKs. The
 CLI is compiled with Java 25. The Android build uses Gradle 8.13 and AGP 8.13,
-whose required JDK is 17. This project tests the Android build with Java 17; it
-cannot run on Java 25.
+which require JDK 17 or newer; this project standardizes its Android builds and
+app bytecode on Java 21. The current Android toolchain cannot run on Java 25.
 
 Set `JAVA_HOME` per command, or switch JDKs with your preferred version manager:
 
 ```bash
 JAVA_HOME=/path/to/jdk-25 mvn test
-JAVA_HOME=/path/to/jdk-17 ./gradlew test assembleDebug
+JAVA_HOME=/path/to/jdk-21 ./gradlew test assembleDebug
 ```
 
-In Android Studio, set the Gradle JDK to 17 under the Gradle settings. This is
+In Android Studio, set the Gradle JDK to 21 under the Gradle settings. This is
 independent of the JDK selected in a terminal for Maven or GraalVM.
 
 ## Build and run
@@ -143,19 +143,19 @@ tests with:
 
 The GitHub Actions workflow runs the CLI tests with JDK 25, builds and
 smoke-tests the GraalVM native executable in English and Russian, and runs the
-Android unit tests plus debug and optimized release builds with JDK 17.
+Android unit tests plus debug and optimized release builds with JDK 21.
 Successful runs publish the Linux native executable, debug APK, and unsigned
 release AAB as workflow artifacts. Device and emulator instrumentation tests
 remain part of the local verification command shown above.
 
 The debug APK is written to
 `android-app/build/outputs/apk/debug/android-app-debug.apk`. The app compiles
-and targets Android 16/API 36, uses Build Tools 36.0.0 and Java 17, and retains
+and targets Android 16/API 36, uses Build Tools 36.0.0 and Java 21, and retains
 Android 8/API 26 as its minimum supported version.
 
 ### Android release bundle
 
-Build an optimized, resource-shrunk Android App Bundle with JDK 17:
+Build an optimized, resource-shrunk Android App Bundle with JDK 21:
 
 ```bash
 ./gradlew :android-app:bundleRelease
