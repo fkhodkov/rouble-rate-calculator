@@ -3,7 +3,6 @@ package info.fkhodkov.rates.core;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 /** Platform-neutral exchange-rate arithmetic shared by all front ends. */
@@ -15,21 +14,17 @@ public final class RateAverages {
   @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
   public static Calculation forPeriods(
       String currency, LocalDate endDate, List<Period> periods, List<Rate> rates) {
-    List<PeriodAverage> averages = new ArrayList<>();
-    for (Period period : periods) {
+    List<Rate> notTooLate = rates.stream().filter(rate -> !rate.date().isAfter(endDate)).toList();
+    List<PeriodAverage> averages = periods.stream().map(period -> {
       LocalDate from = period.startDate(endDate);
-      List<Rate> periodRates = rates.stream()
+      List<Rate> periodRates = notTooLate.stream()
           .filter(rate -> !rate.date().isBefore(from))
-          .filter(rate -> !rate.date().isAfter(endDate))
           .toList();
-      if (periodRates.isEmpty()) {
-        averages.add(PeriodAverage.noData(period));
-      } else {
-        averages.add(PeriodAverage.data(period, average(periodRates), periodRates.size(),
-            periodRates.get(0).date(), periodRates.get(periodRates.size() - 1).date()));
-      }
-    }
-    return new Calculation(currency, endDate, List.copyOf(averages));
+      return periodRates.isEmpty() ? PeriodAverage.noData(period) :
+          PeriodAverage.data(period, average(periodRates), periodRates.size(),
+              periodRates.get(0).date(), periodRates.get(periodRates.size() - 1).date());
+    }).toList();
+    return new Calculation(currency, endDate, averages);
   }
 
   // SequencedCollection methods require Android API 35; this library supports API 26.
