@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -116,16 +115,6 @@ internal fun RateScreen(
             }
         }
         when (state.mode) {
-            CalculationMode.PERIODS -> {
-                DateField(
-                    stringResource(R.string.end_date), state.endDate,
-                    rateViewModel::updateEndDate, !state.loading,
-                )
-                PeriodField(
-                    state.periods, rateViewModel::updatePeriods, !state.loading, true,
-                    rateViewModel::calculate,
-                )
-            }
             CalculationMode.INTERVAL -> {
                 DateField(
                     stringResource(R.string.start_date), state.startDate,
@@ -134,10 +123,6 @@ internal fun RateScreen(
                 DateField(
                     stringResource(R.string.end_date_optional), state.endDate,
                     rateViewModel::updateEndDate, !state.loading,
-                )
-                PeriodField(
-                    state.periods, rateViewModel::updatePeriods, !state.loading, false,
-                    rateViewModel::calculate,
                 )
                 Text(stringResource(R.string.interval_hint))
             }
@@ -174,30 +159,6 @@ private fun RateResult(state: RateUiState) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        state.periodResults.forEach { result ->
-            Text(
-                stringResource(
-                    R.string.period_range, result.period,
-                    localizedDate(result.startDate), localizedDate(result.endDate),
-                ),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            if (result.average == null) {
-                Text(stringResource(R.string.no_rates))
-            } else {
-                Text(
-                    stringResource(R.string.rate_rub, localizedNumber(result.average)),
-                    style = MaterialTheme.typography.headlineLarge,
-                )
-                Text(pluralStringResource(
-                    R.plurals.published_rates, result.observations, result.observations,
-                ))
-                Text(stringResource(
-                    R.string.published_range,
-                    localizedDate(result.firstDate), localizedDate(result.lastDate),
-                ))
-            }
-        }
         state.intervalResult?.let { result ->
             Text(
                 stringResource(
@@ -233,13 +194,12 @@ private fun RateResult(state: RateUiState) {
 }
 
 private fun RateUiState.hasResult(): Boolean =
-    periodResults.isNotEmpty() || intervalResult != null || currentResult != null
+    intervalResult != null || currentResult != null
 
 @Composable
 private fun CalculationMode.localizedLabel(): String =
     stringResource(when (this) {
-        CalculationMode.PERIODS -> R.string.mode_periods
-        CalculationMode.INTERVAL -> R.string.mode_interval
+        CalculationMode.INTERVAL -> R.string.mode_history
         CalculationMode.TODAY -> R.string.mode_today
     })
 
@@ -296,32 +256,6 @@ private fun DateField(
     }
 }
 
-@Composable
-private fun PeriodField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    enabled: Boolean,
-    multiple: Boolean,
-    onDone: () -> Unit,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        enabled = enabled,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Ascii,
-            imeAction = ImeAction.Done,
-        ),
-        keyboardActions = KeyboardActions(onDone = { onDone() }),
-        label = { Text(stringResource(if (multiple) R.string.periods else R.string.period_optional)) },
-        supportingText = {
-            Text(stringResource(if (multiple) R.string.periods_hint else R.string.period_hint))
-        },
-    )
-}
-
 private fun String.toLocalDateOrNull(): LocalDate? = runCatching { LocalDate.parse(trim()) }.getOrNull()
 
 private fun LocalDate.toEpochMillis(): Long =
@@ -334,14 +268,9 @@ private fun Long.toLocalDate(): LocalDate =
 private fun RateError?.localizedMessage(): String? = this?.let {
     stringResource(when (it) {
         RateError.INVALID_CURRENCY -> R.string.error_invalid_currency
-        RateError.PERIOD_REQUIRED -> R.string.error_period_required
-        RateError.INVALID_PERIOD -> R.string.error_invalid_period
         RateError.START_DATE_REQUIRED -> R.string.error_start_required
-        RateError.END_DATE_REQUIRED -> R.string.error_end_required
         RateError.START_DATE_FORMAT -> R.string.error_start_format
         RateError.END_DATE_FORMAT -> R.string.error_end_format
-        RateError.INTERVAL_CONFLICT -> R.string.error_interval_conflict
-        RateError.SINGLE_PERIOD_REQUIRED -> R.string.error_single_period
         RateError.LOAD_FAILED -> R.string.error_load_failed
     })
 }

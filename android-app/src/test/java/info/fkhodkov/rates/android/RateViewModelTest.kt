@@ -75,18 +75,13 @@ class RateViewModelTest {
     }
 
     @Test
-    fun rejectsEndDateAndPeriodForInterval() {
+    fun rejectsMissingStartDate() {
         viewModel.selectMode(CalculationMode.INTERVAL)
-        viewModel.updateStartDate("2026-08-01")
-        viewModel.updateEndDate("2026-08-04")
-        viewModel.updatePeriods("1w")
+        viewModel.updateStartDate("")
 
         viewModel.calculate()
 
-        assertEquals(
-            RateError.INTERVAL_CONFLICT,
-            viewModel.state.value.error,
-        )
+        assertEquals(RateError.START_DATE_REQUIRED, viewModel.state.value.error)
     }
 
     @Test
@@ -99,19 +94,6 @@ class RateViewModelTest {
         val result = viewModel.state.value.intervalResult
         assertEquals(LocalDate.of(2026, 8, 4), result?.endDate)
         assertEquals("76", result?.average)
-    }
-
-    @Test
-    fun calculatesStartDatePlusOnePeriod() {
-        viewModel.selectMode(CalculationMode.INTERVAL)
-        viewModel.updateStartDate("2026-08-01")
-        viewModel.updatePeriods("1w")
-
-        viewModel.calculate()
-
-        val result = viewModel.state.value.intervalResult
-        assertEquals(LocalDate.of(2026, 8, 8), result?.endDate)
-        assertEquals(2, result?.observations)
     }
 
     @Test

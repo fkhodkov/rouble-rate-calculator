@@ -28,7 +28,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 
@@ -42,25 +41,23 @@ class RateScreenTest {
     )
 
     @Test
-    fun intervalModeShowsValidationErrorForConflictingInputs() {
+    fun historyModeUsesStartAndOptionalEndDates() {
         val viewModel = viewModel()
         show(viewModel)
         compose.waitUntil { !viewModel.state.value.loading }
 
-        compose.onNodeWithText("Interval").performClick()
+        compose.onNodeWithText("History").assertIsDisplayed()
+        compose.onAllNodesWithText("Periods").assertCountEquals(0)
+        compose.onAllNodesWithText("Period (optional)").assertCountEquals(0)
         compose.onNode(hasSetTextAction() and hasText("Start date"))
             .performTextReplacement("2026-08-01")
         compose.onNode(hasSetTextAction() and hasText("End date (optional)"))
             .performTextReplacement("2026-08-04")
-        compose.onNode(hasSetTextAction() and hasText("Period (optional)"))
-            .performTextReplacement("1w")
-        compose.onNodeWithText("Calculate").performScrollTo().performClick()
+        compose.onNodeWithText("Refresh").performScrollTo().performClick()
+        compose.waitUntil { !viewModel.state.value.loading }
 
-        compose.waitUntil { viewModel.state.value.error == RateError.INTERVAL_CONFLICT }
-        compose.onNodeWithText("Start date, end date, and period cannot be used together.")
-            .performScrollTo()
-            .assertIsDisplayed()
-        assertFalse(viewModel.state.value.loading)
+        compose.onNodeWithText("Aug 1, 2026 through Aug 4, 2026").assertIsDisplayed()
+        compose.onNodeWithText("76 RUB").assertIsDisplayed()
     }
 
     @Test
@@ -86,8 +83,7 @@ class RateScreenTest {
         compose.waitUntil { !viewModel.state.value.loading }
 
         compose.onNodeWithText("Калькулятор курса рубля").assertIsDisplayed()
-        compose.onAllNodesWithText("Периоды").assertCountEquals(2)
-        compose.onNodeWithText("Интервал").assertIsDisplayed()
+        compose.onNodeWithText("История").assertIsDisplayed()
         compose.onNodeWithText("Сегодня").assertIsDisplayed()
         compose.onNodeWithText("Обновить").assertIsDisplayed()
     }
