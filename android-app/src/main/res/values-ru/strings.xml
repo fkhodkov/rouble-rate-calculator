@@ -7,7 +7,7 @@
     <string name="mode_history">История</string>
     <string name="mode_today">Сегодня</string>
     <string name="start_date">Начальная дата</string>
-    <string name="end_date_optional">Конечная дата (необязательно)</string>
+    <string name="end_date_optional">Конечная дата</string>
     <string name="date_format">ГГГГ-ММ-ДД</string>
     <string name="pick_date">Выбрать</string>
     <string name="ok">ОК</string>

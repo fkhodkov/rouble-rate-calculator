@@ -51,7 +51,7 @@ class RateScreenTest {
         compose.onAllNodesWithText("Period (optional)").assertCountEquals(0)
         compose.onNode(hasSetTextAction() and hasText("Start date"))
             .performTextReplacement("2026-08-01")
-        compose.onNode(hasSetTextAction() and hasText("End date (optional)"))
+        compose.onNode(hasSetTextAction() and hasText("End date"))
             .performTextReplacement("2026-08-04")
         compose.onNodeWithText("Refresh").performScrollTo().performClick()
         compose.waitUntil { !viewModel.state.value.loading }
